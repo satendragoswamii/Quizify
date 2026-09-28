@@ -1,0 +1,198 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ exam.title }}{% endblock %}
+{% block heading %}Exam results{% endblock %}
+
+{% block topbar %}
+  <a class="btn small" href="{{ url_for('admin.exams_list') }}">&larr; All exams</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Share link + settings -->
+<div class="card">
+  <div class="card-head">
+    <h2>{{ exam.title }}</h2>
+    <p>
+      {% if exam.subject %}{{ exam.subject }}{% endif %}{% if exam.topic %} &middot; {{ exam.topic }}{% endif %}
+      &middot; {{ exam.question_count }} questions &middot; {{ exam.total_points }} points
+      {% if exam.time_limit_min %} &middot; {{ exam.time_limit_min }} min limit{% endif %}
+    </p>
+  </div>
+  <div class="card-body">
+    <label class="muted" style="font-size:13px;font-weight:600;">Share this link with test-takers</label>
+    <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;">
+      <input type="text" id="shareUrl" value="{{ share_url }}" readonly
+             style="flex:1;min-width:260px;padding:11px 14px;border:1.5px solid var(--admin-border,#d3dcec);border-radius:10px;font-family:inherit;font-size:14px;background:transparent;color:inherit;">
+      <button type="button" class="btn small" id="copyBtn">Copy link</button>
+      <a class="btn small" href="{{ share_url }}" target="_blank" rel="noopener">Open</a>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
+      <a class="btn small" href="{{ url_for('admin.exam_edit', exam_id=exam.id) }}">Edit / reschedule</a>
+      {% if exam.proctored %}<span class="badge ok" title="Camera proctoring is on">● Proctored</span>{% endif %}
+      <form method="post" action="{{ url_for('admin.exam_toggle', exam_id=exam.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn small">
+          {% if exam.is_open %}Close exam{% else %}Reopen exam{% endif %}
+        </button>
+      </form>
+      <form method="post" action="{{ url_for('admin.exam_delete', exam_id=exam.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn small danger"
+                data-confirm="Delete this exam and all its attempts? This cannot be undone.">Delete exam</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="stat-row" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0;">
+  <div class="card"><div class="card-body">
+    <div class="muted" style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;">Attempts</div>
+    <div style="font-size:28px;font-weight:800;margin-top:4px;">{{ stats.attempts }}</div>
+  </div></div>
+  <div class="card"><div class="card-body">
+    <div class="muted" style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;">Average</div>
+    <div style="font-size:28px;font-weight:800;margin-top:4px;">{{ stats.avg_percent }}%</div>
+  </div></div>
+  <div class="card"><div class="card-body">
+    <div class="muted" style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;">Highest</div>
+    <div style="font-size:28px;font-weight:800;margin-top:4px;">{{ stats.best_percent }}%</div>
+  </div></div>
+  <div class="card"><div class="card-body">
+    <div class="muted" style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;">Need review</div>
+    <div style="font-size:28px;font-weight:800;margin-top:4px;">{{ stats.review_count }}</div>
+  </div></div>
+</div>
+
+<!-- Assign to students -->
+<div class="card">
+  <div class="card-head">
+    <h2>Assign to students</h2>
+    <p>Assigned students take this exam by logging into the student portal. Pick whole batches and/or individual students.</p>
+  </div>
+  <div class="card-body">
+    {% if all_students %}
+    <form method="post" action="{{ url_for('admin.exam_assign', exam_id=exam.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% if batches %}
+      <div style="margin-bottom:12px;">
+        <div class="muted" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px;">Batches</div>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;">
+          {% for b in batches %}
+          <label style="display:flex;gap:7px;align-items:center;"><input type="checkbox" name="batches" value="{{ b }}"> {{ b }}</label>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+      <div class="muted" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px;">Individual students</div>
+      <div style="max-height:220px;overflow-y:auto;border:1px solid var(--admin-border,#d3dcec);border-radius:10px;padding:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:6px;">
+        {% for s in all_students %}
+        <label style="display:flex;gap:8px;align-items:center;font-size:13px;{% if s.id in assigned_ids %}opacity:.55;{% endif %}">
+          <input type="checkbox" name="student_ids" value="{{ s.id }}" {% if s.id in assigned_ids %}checked disabled{% endif %}>
+          <span>{{ s.name or s.email }}{% if s.roll_no %} · {{ s.roll_no }}{% endif %}{% if s.batch %} <span class="muted">({{ s.batch }})</span>{% endif %}{% if s.id in assigned_ids %} ✓{% endif %}</span>
+        </label>
+        {% endfor %}
+      </div>
+      <div class="actions" style="margin-top:14px;">
+        <button type="submit" class="btn">Assign selected</button>
+      </div>
+    </form>
+    {% else %}
+      <div class="empty">No students enrolled yet. <a href="{{ url_for('admin.students') }}">Enroll students</a> first.</div>
+    {% endif %}
+
+    {% if assigned_students %}
+    <div style="margin-top:18px;">
+      <div class="muted" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;margin-bottom:8px;">Currently assigned ({{ assigned_students|length }})</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Roll</th><th>Name</th><th>Batch</th><th class="num">Attempts</th><th class="num">Last score</th><th></th></tr></thead>
+          <tbody>
+            {% for s in assigned_students %}
+            <tr>
+              <td class="mono">{{ s.roll_no or '—' }}</td>
+              <td>{{ s.name or s.email }}</td>
+              <td>{% if s.batch %}<span class="badge mute">{{ s.batch }}</span>{% else %}—{% endif %}</td>
+              <td class="num">{{ s.attempts }}</td>
+              <td class="num">{{ (s.last_percent ~ '%') if s.last_percent is not none else '—' }}</td>
+              <td>
+                <form method="post" action="{{ url_for('admin.exam_unassign', exam_id=exam.id, user_id=s.id) }}" style="display:inline;">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn small">Unassign</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Attempts -->
+<div class="card">
+  <div class="card-body tight">
+    {% if attempts %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th><th>Email</th>
+            <th class="num">Score</th><th class="num">%</th>
+            <th class="num">Correct</th><th class="num">Time</th>
+            <th>When</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in attempts %}
+          <tr>
+            <td><strong>{{ a.taker_name }}</strong>
+              {% if a.needs_review %}<span class="badge warn" title="Contains answers needing manual review">review</span>{% endif %}
+            </td>
+            <td class="muted">{{ a.taker_email or '—' }}</td>
+            <td class="num">{{ a.score }}/{{ a.total_points }}</td>
+            <td class="num">
+              {% set pc = 'ok' if a.percent >= 70 else ('warn' if a.percent >= 40 else 'err') %}
+              <span class="badge {{ pc }}">{{ a.percent }}%</span>
+            </td>
+            <td class="num">{{ a.correct_count }}/{{ a.graded_count }}</td>
+            <td class="num muted">
+              {% if a.duration_sec %}{{ (a.duration_sec // 60) }}m {{ (a.duration_sec % 60) }}s{% else %}—{% endif %}
+            </td>
+            <td class="muted">{{ a.created_at }}</td>
+            <td style="white-space:nowrap;">
+              {% if exam.proctored %}
+              <a class="btn small" href="{{ url_for('admin.exam_proctor', attempt_id=a.id) }}">📷 Proctor</a>
+              {% endif %}
+              <a class="btn small" target="_blank" rel="noopener"
+                 href="{{ url_for('exam_result', token=exam.token, attempt=a.id) }}">Detail</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="empty">No attempts yet. Share the link above to start collecting results.</div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  (function(){
+    var btn = document.getElementById('copyBtn');
+    var url = document.getElementById('shareUrl');
+    if (btn && url) {
+      btn.addEventListener('click', function(){
+        url.select();
+        navigator.clipboard.writeText(url.value).then(function(){
+          var t = btn.textContent; btn.textContent = 'Copied!';
+          setTimeout(function(){ btn.textContent = t; }, 1500);
+        }).catch(function(){ document.execCommand('copy'); });
+      });
+    }
+  })();
+</script>
+{% endblock %}

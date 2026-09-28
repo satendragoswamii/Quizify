@@ -1,0 +1,28 @@
+# --- Core (required) ---
+flask>=3.0
+flask-sock>=0.7           # WebSocket signaling for live proctoring (WebRTC)
+python-docx>=1.1          # .docx reading
+openpyxl>=3.1             # .xlsx reading and Excel export
+python-dotenv>=1.0        # loads .env
+
+# --- File readers (optional; a missing one disables only its own format) ---
+pdfplumber>=0.11          # .pdf
+beautifulsoup4>=4.12      # .html / .htm / .xml
+striprtf>=0.0.26          # .rtf
+chardet>=5.2              # encoding detection for oddly-encoded text files
+
+# --- AI assist (optional) ---
+requests>=2.31            # every OpenAI-compatible provider (OpenRouter, Groq, ...)
+anthropic>=0.69           # only needed for the Claude provider
+
+# --- Image OCR (optional; also needs the Tesseract binary on PATH) ---
+# pytesseract>=0.3.10
+# pillow>=10.0
+
+# --- Serving (production only; the dev server in app.py needs none of these) ---
+# Run with:  gunicorn --workers 4 --threads 4 --timeout 300 wsgi:application
+# gunicorn>=22.0            # Linux / macOS
+# waitress>=3.0             # Windows, or anywhere gunicorn is awkward
+
+# Note: pandas is no longer required — Excel/CSV export uses openpyxl and the
+# standard-library csv module directly.

@@ -1,0 +1,725 @@
+{#
+  Public exam-taking page — single-question exam interface.
+
+  Standalone (does not extend admin/base) so it owns its layout and works for
+  anonymous takers via a share link. Flow: register (name/email) -> exam screen.
+  Only one question is shown at a time; a navigator jumps between them. Answers
+  post as JSON to /api/exam/<token>/submit, which grades and returns a result URL.
+
+  The answer key is never sent here — questions come from exams.public_question().
+#}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ exam.title }} &middot; Quizify Exam</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+    :root{
+      --primary:#3358D4; --primary-dark:#2544AE; --accent:#6E7BF2;
+      --grad:linear-gradient(135deg,#3358D4 0%,#6E7BF2 100%);
+      --ink:#10162a; --muted:#6b7280; --border:#e6eaf3; --card:#fff;
+      --bg:#f4f6fd; --ok:#12A150; --ok-soft:#e7f6ee; --soft:#eef2fe; --warn:#DC2B2B;
+      --shadow-sm:0 2px 8px rgba(25,35,90,.06);
+      --shadow-md:0 8px 26px rgba(25,35,90,.09);
+      --shadow-lg:0 20px 50px rgba(25,35,90,.12);
+      --radius:16px;
+    }
+    body{
+      font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+      color:var(--ink); line-height:1.6; min-height:100vh;
+      background:
+        radial-gradient(120% 70% at 100% 0%, #e9edfe 0%, transparent 55%),
+        radial-gradient(90% 60% at 0% 100%, #efeafe 0%, transparent 50%),
+        var(--bg);
+    }
+    button{font-family:inherit;}
+
+    /* ============ REGISTRATION GATE ============ */
+    .register{min-height:100vh;display:grid;place-items:center;padding:24px;}
+    .register-card{
+      width:min(460px,100%); background:var(--card); border:1px solid var(--border);
+      border-radius:22px; padding:40px 38px; box-shadow:var(--shadow-lg); text-align:center;
+    }
+    .brand{display:inline-flex;align-items:center;gap:11px;font-weight:800;font-size:22px;margin-bottom:6px;}
+    .brand .cap{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;background:var(--grad);box-shadow:0 8px 18px rgba(51,88,212,.32);}
+    .brand .cap svg{width:22px;height:22px;fill:#fff;}
+    .brand span{color:var(--primary);}
+    .register h1{font-size:22px;font-weight:800;letter-spacing:-.02em;margin-top:14px;}
+    .register .sub{color:var(--muted);font-size:14.5px;margin-top:6px;}
+    .register-meta{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:18px 0 8px;}
+    .pill{background:var(--soft);color:var(--primary);font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:999px;}
+    .reg-fields{margin-top:16px;text-align:left;display:flex;flex-direction:column;gap:12px;}
+    .reg-fields label{font-size:13px;font-weight:600;color:var(--ink);display:block;margin-bottom:5px;}
+    .reg-fields input{
+      width:100%;height:48px;padding:0 15px;border:1.5px solid var(--border);border-radius:12px;
+      font:inherit;font-size:15px;background:#fff;
+    }
+    .reg-fields input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 4px rgba(51,88,212,.12);}
+    .btn-primary{
+      width:100%;height:52px;margin-top:20px;border:none;border-radius:13px;cursor:pointer;background:var(--grad);
+      color:#fff;font-size:16px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:9px;
+      box-shadow:0 12px 26px rgba(51,88,212,.3);transition:filter .12s,transform .12s;
+    }
+    .btn-primary:hover{filter:brightness(1.05);transform:translateY(-1px);}
+    .btn-primary:disabled{opacity:.55;cursor:not-allowed;transform:none;}
+    .reg-note{font-size:12.5px;color:var(--muted);margin-top:14px;}
+    .reg-err{display:none;margin-top:14px;padding:11px 14px;border-radius:11px;background:#fdecec;border:1px solid #f6c9c4;color:#b23b32;font-size:13.5px;}
+    .reg-instructions{margin-top:18px;text-align:left;background:var(--soft);border:1px solid #dbe3fb;border-radius:12px;padding:14px 16px;}
+    .reg-instructions .ri-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--primary);margin-bottom:6px;}
+    .reg-instructions .ri-body{font-size:13.5px;color:var(--ink);white-space:pre-wrap;line-height:1.55;}
+    .reg-proctor{margin-top:14px;text-align:left;display:flex;gap:10px;align-items:flex-start;background:#fdf6ec;border:1px solid #f4dcae;border-radius:12px;padding:12px 14px;color:#8a5a0a;font-size:13px;}
+    .reg-proctor svg{flex-shrink:0;margin-top:1px;}
+    /* Sidebar camera preview during a proctored exam. */
+    .side-cam{margin-top:14px;}
+    .side-cam video{width:100%;border-radius:11px;background:#0b1120;aspect-ratio:4/3;object-fit:cover;}
+    .side-cam .cam-status{margin-top:6px;font-size:12px;font-weight:700;color:var(--ok);display:flex;align-items:center;gap:5px;}
+
+    /* ============ EXAM SHELL ============ */
+    .exam-shell{display:none;min-height:100vh;grid-template-columns:220px 1fr;}
+    .exam-shell.active{display:grid;}
+
+    /* Sidebar */
+    .sidebar{
+      background:var(--card);border-right:1px solid var(--border);padding:22px 18px;
+      display:flex;flex-direction:column;gap:6px;position:sticky;top:0;height:100vh;
+    }
+    .sidebar .brand{font-size:19px;margin-bottom:18px;}
+    .side-link{display:flex;align-items:center;gap:11px;padding:11px 13px;border-radius:11px;color:var(--ink);
+      text-decoration:none;font-size:14px;font-weight:600;cursor:pointer;border:none;background:none;width:100%;text-align:left;transition:background .12s;}
+    .side-link svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+    .side-link.active{background:var(--soft);color:var(--primary);}
+    .side-link:hover{background:#f2f5fc;}
+    .side-learner{margin-top:auto;padding-top:16px;border-top:1px solid var(--border);}
+    .side-learner .nm{font-weight:700;font-size:14px;}
+    .side-learner .em{font-size:12.5px;color:var(--muted);word-break:break-all;}
+
+    /* Main column */
+    .main{display:flex;flex-direction:column;min-width:0;}
+
+    /* Header */
+    .topbar{
+      background:var(--card);border-bottom:1px solid var(--border);padding:16px 26px;
+      display:flex;align-items:center;gap:20px;flex-wrap:wrap;position:sticky;top:0;z-index:20;box-shadow:var(--shadow-sm);
+    }
+    .topbar .title-wrap{min-width:0;}
+    .topbar h1{font-size:18px;font-weight:800;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:340px;}
+    .topbar .sub{font-size:12.5px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap;margin-top:2px;}
+    .topbar .sub b{color:var(--ink);font-weight:600;}
+    .topbar .spacer{flex:1;}
+    .timer-box{display:inline-flex;align-items:center;gap:8px;padding:9px 15px;border-radius:12px;background:var(--soft);color:var(--primary);font-weight:800;font-size:16px;border:1px solid #d7e0fb;}
+    .timer-box.warn{background:#fdecec;color:#b23b32;border-color:#f6c9c4;animation:pulse 1s infinite;}
+    @keyframes pulse{50%{opacity:.6;}}
+    .timer-box svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+    .btn-submit{border:none;border-radius:12px;cursor:pointer;background:var(--grad);color:#fff;font-weight:700;font-size:14.5px;padding:11px 20px;box-shadow:0 8px 18px rgba(51,88,212,.28);transition:filter .12s,transform .12s;}
+    .btn-submit:hover{filter:brightness(1.05);transform:translateY(-1px);}
+
+    /* Content area: navigator + question */
+    .content{display:grid;grid-template-columns:240px 1fr;gap:22px;padding:24px 26px;align-items:start;}
+
+    /* Navigator */
+    .nav-panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow-sm);position:sticky;top:90px;}
+    .nav-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);}
+    .nav-progress{font-size:14px;font-weight:700;margin-top:8px;}
+    .nav-progress span{color:var(--primary);}
+    .nav-bar{height:7px;border-radius:999px;background:#e9eefb;margin-top:9px;overflow:hidden;}
+    .nav-bar-fill{height:100%;width:0;background:var(--grad);transition:width .3s;}
+    .nav-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-top:15px;max-height:340px;overflow-y:auto;padding-right:2px;}
+    .nav-dot{aspect-ratio:1;border:1.5px solid var(--border);border-radius:9px;background:#fff;font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;}
+    .nav-dot:hover{border-color:var(--primary);color:var(--primary);}
+    .nav-dot.answered{background:var(--ok-soft);border-color:var(--ok);color:var(--ok);}
+    .nav-dot.current{background:var(--grad);border-color:transparent;color:#fff;box-shadow:0 4px 11px rgba(51,88,212,.4);}
+    .nav-legend{display:flex;flex-direction:column;gap:7px;margin-top:16px;font-size:12px;color:var(--muted);}
+    .nav-legend i{display:inline-block;width:13px;height:13px;border-radius:4px;vertical-align:middle;margin-right:7px;}
+    .lg-current{background:var(--grad);} .lg-answered{background:var(--ok-soft);border:1.5px solid var(--ok);} .lg-none{background:#fff;border:1.5px solid var(--border);}
+
+    /* Question card */
+    .q-wrap{min-width:0;}
+    .q-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:30px 32px;box-shadow:var(--shadow-md);min-height:340px;display:flex;flex-direction:column;}
+    .q-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+    .q-counter{font-size:13px;font-weight:700;color:var(--primary);background:var(--soft);padding:6px 13px;border-radius:999px;}
+    .q-type{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);}
+    .q-marks{margin-left:auto;font-size:13px;font-weight:700;color:var(--ink);}
+    .q-text{font-size:19px;font-weight:600;line-height:1.5;margin-bottom:22px;}
+    .opts{display:flex;flex-direction:column;gap:12px;}
+    .opt{display:flex;align-items:center;gap:14px;padding:16px 18px;border:1.5px solid var(--border);border-radius:13px;cursor:pointer;transition:all .12s;}
+    .opt:hover{border-color:var(--primary);background:var(--soft);}
+    .opt.checked{border-color:var(--primary);background:var(--soft);box-shadow:0 0 0 3px rgba(51,88,212,.1);}
+    .opt input{width:20px;height:20px;accent-color:var(--primary);cursor:pointer;flex-shrink:0;}
+    .opt-label{font-weight:800;color:var(--primary);min-width:22px;}
+    .opt-text{flex:1;}
+    .text-answer{width:100%;margin-top:4px;padding:14px 16px;border:1.5px solid var(--border);border-radius:13px;font:inherit;font-size:15px;resize:vertical;min-height:60px;}
+    .text-answer:focus,.opt:focus-within{outline:none;border-color:var(--primary);box-shadow:0 0 0 4px rgba(51,88,212,.12);}
+
+    /* Bottom controls */
+    .controls{display:flex;align-items:center;gap:12px;margin-top:26px;padding-top:22px;border-top:1px solid var(--border);}
+    .btn{border:1.5px solid var(--border);background:#fff;color:var(--ink);border-radius:12px;padding:12px 20px;font-size:14.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:all .12s;}
+    .btn:hover:not(:disabled){border-color:var(--primary);color:var(--primary);}
+    .btn:disabled{opacity:.45;cursor:not-allowed;}
+    .btn svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+    .btn-save{color:var(--primary);border-color:#c7d4f7;background:var(--soft);}
+    .btn-next{margin-left:auto;background:var(--grad);color:#fff;border-color:transparent;box-shadow:0 8px 18px rgba(51,88,212,.28);}
+    .btn-next:hover{filter:brightness(1.05);color:#fff;}
+    .save-flash{font-size:13px;color:var(--ok);font-weight:600;opacity:0;transition:opacity .2s;}
+    .save-flash.show{opacity:1;}
+
+    /* Confirm modal */
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(16,22,42,.5);backdrop-filter:blur(3px);z-index:100;place-items:center;padding:24px;}
+    .modal-overlay.show{display:grid;}
+    .modal{background:#fff;border-radius:20px;padding:32px 30px;max-width:440px;width:100%;box-shadow:var(--shadow-lg);text-align:center;}
+    .modal-icon{width:60px;height:60px;border-radius:16px;margin:0 auto 16px;display:grid;place-items:center;background:var(--soft);color:var(--primary);}
+    .modal-icon svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+    .modal h2{font-size:20px;font-weight:800;}
+    .modal p{color:var(--muted);margin-top:8px;font-size:14.5px;}
+    .modal-stats{display:flex;gap:10px;justify-content:center;margin:18px 0;flex-wrap:wrap;}
+    .modal-stats .st{background:var(--soft);border-radius:11px;padding:10px 16px;font-size:13px;font-weight:600;}
+    .modal-stats .st b{display:block;font-size:20px;color:var(--primary);}
+    .modal-actions{display:flex;gap:12px;margin-top:8px;}
+    .modal-actions .btn{flex:1;justify-content:center;}
+    .modal-actions .btn-go{background:var(--grad);color:#fff;border-color:transparent;}
+
+    /* Responsive */
+    @media (max-width:960px){
+      .exam-shell.active{grid-template-columns:1fr;}
+      .sidebar{position:static;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center;border-right:none;border-bottom:1px solid var(--border);}
+      .sidebar .brand{margin-bottom:0;margin-right:auto;}
+      .side-link{width:auto;}
+      .side-learner{margin-top:0;padding-top:0;border-top:none;width:100%;}
+      .content{grid-template-columns:1fr;}
+      .nav-panel{position:static;}
+      .nav-grid{grid-template-columns:repeat(10,1fr);max-height:none;}
+    }
+    @media (max-width:560px){
+      .content{padding:16px;}
+      .q-card{padding:22px 18px;}
+      .topbar{padding:14px 16px;}
+      .topbar h1{max-width:200px;}
+      .nav-grid{grid-template-columns:repeat(6,1fr);}
+      .controls{flex-wrap:wrap;}
+      .btn-next{margin-left:0;width:100%;justify-content:center;}
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============ REGISTRATION ============ -->
+  <div class="register" id="registerView">
+    <div class="register-card">
+      <div class="brand">
+        <span class="cap"><svg viewBox="0 0 24 24"><path d="M12 3 1 8l11 5 9-4.09V15h2V8L12 3zM5 13.18V17c0 1.66 3.13 3 7 3s7-1.34 7-3v-3.82l-7 3.18-7-3.18z"/></svg></span>
+        Quiz<span>ify</span>
+      </div>
+      <h1>{{ exam.title }}</h1>
+      <div class="sub">Enter your details to begin the exam.</div>
+      <div class="register-meta">
+        <span class="pill">{{ exam.question_count }} questions</span>
+        <span class="pill">{{ exam.total_points }} points</span>
+        {% if exam.time_limit_min %}<span class="pill">{{ exam.time_limit_min }} min</span>{% endif %}
+      </div>
+      <div class="reg-fields">
+        <div>
+          <label for="regName">Full name</label>
+          <input type="text" id="regName" placeholder="e.g. Jane Doe" autocomplete="name" required>
+        </div>
+        <div>
+          <label for="regEmail">Email <span style="color:var(--muted);font-weight:500;">(optional)</span></label>
+          <input type="email" id="regEmail" placeholder="jane@example.com" autocomplete="email">
+        </div>
+      </div>
+      {% if exam.instructions %}
+      <div class="reg-instructions">
+        <div class="ri-title">Instructions</div>
+        <div class="ri-body">{{ exam.instructions }}</div>
+      </div>
+      {% endif %}
+      {% if exam.proctored %}
+      <div class="reg-proctor">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+        <span>This is a <b>proctored exam</b>. You must allow <b>camera and microphone</b> access; your video and audio are monitored live during the test.</span>
+      </div>
+      {% endif %}
+      <div class="reg-err" id="regErr"></div>
+      <button type="button" class="btn-primary" id="startBtn">
+        {% if exam.proctored %}Allow Camera &amp; Mic &amp; Start{% else %}Start Exam{% endif %}
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>
+      <div class="reg-note">
+        {% if exam.time_limit_min %}Once you start, the {{ exam.time_limit_min }}-minute timer begins.{% else %}Your answers are graded instantly on submit.{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ EXAM ============ -->
+  <div class="exam-shell" id="examShell">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="cap"><svg viewBox="0 0 24 24"><path d="M12 3 1 8l11 5 9-4.09V15h2V8L12 3zM5 13.18V17c0 1.66 3.13 3 7 3s7-1.34 7-3v-3.82l-7 3.18-7-3.18z"/></svg></span>
+        Quiz<span>ify</span>
+      </div>
+      <button class="side-link active" type="button">
+        <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Take Quiz
+      </button>
+      <button class="side-link" type="button" id="instructionsBtn">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        Instructions
+      </button>
+      <div class="side-cam" id="sideCam" style="display:none;">
+        <video id="camPreview" autoplay muted playsinline></video>
+        <div class="cam-status" id="camStatus">● Camera &amp; mic on</div>
+      </div>
+      <div class="side-learner">
+        <div class="nm" id="sideName">—</div>
+        <div class="em" id="sideEmail"></div>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="main">
+      <!-- Header -->
+      <header class="topbar">
+        <div class="title-wrap">
+          <h1>{{ exam.title }}</h1>
+          <div class="sub">
+            <span><b>{{ exam.question_count }}</b> questions</span>
+            <span><b>{{ exam.total_points }}</b> points</span>
+            {% if exam.time_limit_min %}<span><b>{{ exam.time_limit_min }} min</b> limit</span>{% endif %}
+          </div>
+        </div>
+        <div class="spacer"></div>
+        <div class="timer-box" id="timerBox" style="display:none;">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span id="timerText">--:--</span>
+        </div>
+        <button type="button" class="btn-submit" id="submitExamBtn">Submit Exam</button>
+      </header>
+
+      <!-- Content -->
+      <div class="content">
+        <!-- Navigator -->
+        <aside class="nav-panel">
+          <div class="nav-title">Questions</div>
+          <div class="nav-progress"><span id="answeredCount">0</span> of {{ exam.question_count }} answered</div>
+          <div class="nav-bar"><div class="nav-bar-fill" id="navBarFill"></div></div>
+          <div class="nav-grid" id="navGrid">
+            {% for q in questions %}
+            <button type="button" class="nav-dot" data-index="{{ loop.index0 }}">{{ loop.index }}</button>
+            {% endfor %}
+          </div>
+          <div class="nav-legend">
+            <span><i class="lg-current"></i> Current</span>
+            <span><i class="lg-answered"></i> Answered</span>
+            <span><i class="lg-none"></i> Not answered</span>
+          </div>
+        </aside>
+
+        <!-- Single question -->
+        <div class="q-wrap">
+          <div class="q-card" id="qCard">
+            <div class="q-meta">
+              <span class="q-counter" id="qCounter">Question 1 of {{ exam.question_count }}</span>
+              <span class="q-type" id="qType"></span>
+              <span class="q-marks" id="qMarks"></span>
+            </div>
+            <div class="q-text" id="qText"></div>
+            <div id="qBody"></div>
+            <div class="controls">
+              <button type="button" class="btn" id="prevBtn">
+                <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+                Previous
+              </button>
+              <button type="button" class="btn btn-save" id="saveBtn">Save</button>
+              <span class="save-flash" id="saveFlash">✓ Saved</span>
+              <button type="button" class="btn btn-next" id="nextBtn">
+                Save &amp; Next
+                <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ CONFIRM MODAL ============ -->
+  <div class="modal-overlay" id="confirmModal">
+    <div class="modal">
+      <div class="modal-icon">
+        <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      </div>
+      <h2>Submit your exam?</h2>
+      <p>You won't be able to change your answers after submitting.</p>
+      <div class="modal-stats">
+        <div class="st"><b id="mAnswered">0</b>Answered</div>
+        <div class="st"><b id="mUnanswered">0</b>Unanswered</div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="cancelSubmit">Keep working</button>
+        <button type="button" class="btn btn-go" id="confirmSubmit">Submit now</button>
+      </div>
+    </div>
+  </div>
+
+  {# Question data (no answer key) rendered server-side into JS. #}
+  <script>
+    window.EXAM = {
+      token: {{ exam.token | tojson }},
+      limitMin: {{ exam.time_limit_min }},
+      questions: {{ questions | tojson }},
+      shuffleOpts: {{ 'true' if exam.shuffle_opts else 'false' }},
+      shuffleQ: {{ 'true' if exam.shuffle_q else 'false' }},
+      proctored: {{ 'true' if exam.proctored else 'false' }},
+      proctorInterval: {{ exam.proctor_interval }},
+      instructions: {{ exam.instructions | tojson }}
+    };
+  </script>
+  <script>
+  (function(){
+    var E = window.EXAM;
+    var Q = E.questions.slice();
+    var startedAt = null, submitted = false, current = 0;
+    var answers = {};   // keyed by question id
+    var attemptId = null, camStream = null, snapTimer = null;
+
+    // Optional shuffles (done client-side so each taker differs).
+    function shuffle(a){ for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;} return a; }
+    if (E.shuffleQ) shuffle(Q);
+    if (E.shuffleOpts) Q.forEach(function(q){ if(q.options) q.options = shuffle(q.options.slice()); });
+
+    // ---- Registration ----
+    var startBtn = document.getElementById('startBtn');
+    startBtn.addEventListener('click', startExam);
+    document.getElementById('regName').addEventListener('keydown', function(e){ if(e.key==='Enter') startExam(); });
+
+    function regError(msg){
+      var err = document.getElementById('regErr');
+      err.textContent = msg; err.style.display = 'block';
+    }
+
+    function startExam(){
+      var name = document.getElementById('regName').value.trim();
+      var email = document.getElementById('regEmail').value.trim();
+      if (!name){ regError('Please enter your name to begin.'); document.getElementById('regName').focus(); return; }
+
+      window._taker = { name: name, email: email };
+      var startBtn = document.getElementById('startBtn');
+      startBtn.disabled = true;
+
+      if (E.proctored){
+        // Camera + microphone are required. Request both, then start and begin capture.
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+          regError('Your browser does not support camera/microphone access, which this proctored exam requires.');
+          startBtn.disabled = false; return;
+        }
+        navigator.mediaDevices.getUserMedia({
+            video:{ width:640, height:480 },
+            audio:{ echoCancellation:true, noiseSuppression:true }
+          })
+          .then(function(stream){
+            camStream = stream;
+            var vid = document.getElementById('camPreview'); vid.srcObject = stream;
+            return fetch('/api/exam/' + encodeURIComponent(E.token) + '/start', {
+              method:'POST', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ taker_name:name, taker_email:email })
+            });
+          })
+          .then(function(r){ return r.json().then(function(d){ return {ok:r.ok,d:d}; }); })
+          .then(function(res){
+            if (!res.ok){ throw new Error(res.d.error || 'Could not start the proctored exam.'); }
+            attemptId = res.d.attempt_id;
+            document.getElementById('sideCam').style.display = 'block';
+            beginExam(name, email);
+            startSnapshots(res.d.interval || E.proctorInterval);
+            startLive();   // real-time WebRTC audio+video stream to the admin
+          })
+          .catch(function(err){
+            if (camStream){ camStream.getTracks().forEach(function(t){t.stop();}); camStream = null; }
+            regError((err && err.name === 'NotAllowedError')
+              ? 'Camera and microphone access were denied. This proctored exam cannot start without them.'
+              : (err.message || 'Could not access the camera/microphone.'));
+            startBtn.disabled = false;
+          });
+      } else {
+        beginExam(name, email);
+      }
+    }
+
+    function beginExam(name, email){
+      document.getElementById('sideName').textContent = name;
+      document.getElementById('sideEmail').textContent = email;
+      document.getElementById('registerView').style.display = 'none';
+      document.getElementById('examShell').classList.add('active');
+      startedAt = Date.now();
+      buildNav();
+      renderQuestion(0);
+      startTimer();
+    }
+
+    // ---- Proctoring ----
+    function captureFrame(quality){
+      var vid = document.getElementById('camPreview');
+      if (!vid || !vid.videoWidth) return null;
+      var c = document.createElement('canvas');
+      c.width = 320; c.height = Math.round(320 * vid.videoHeight / vid.videoWidth);
+      c.getContext('2d').drawImage(vid, 0, 0, c.width, c.height);
+      try { return c.toDataURL('image/jpeg', quality || 0.5); } catch(e){ return null; }
+    }
+
+    // Durable snapshot (goes to the DB, every proctor_interval seconds).
+    function sendSnapshot(){
+      var img = captureFrame(0.6);
+      if (!img || !attemptId) return;
+      fetch('/api/exam/' + encodeURIComponent(E.token) + '/snapshot', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ attempt_id: attemptId, image: img })
+      }).catch(function(){});
+    }
+
+    function startSnapshots(interval){
+      setTimeout(sendSnapshot, 1500);                     // first durable frame
+      snapTimer = setInterval(sendSnapshot, Math.max(5, interval) * 1000);
+    }
+
+    // ---- Live WebRTC (real-time video to the admin) ----
+    // The learner is the "camera" peer. The admin "viewer" initiates the offer when it
+    // connects; we answer and attach the camera stream. Signalling is relayed over WS.
+    var pc = null, sigWs = null, wsRetry = null;
+    var RTC_CONFIG = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+    function wsUrl(){
+      var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      return proto + '//' + location.host + '/ws/proctor/' + attemptId + '/camera';
+    }
+
+    function newPeer(){
+      if (pc){ try { pc.close(); } catch(e){} }
+      pc = new RTCPeerConnection(RTC_CONFIG);
+      if (camStream){ camStream.getTracks().forEach(function(t){ pc.addTrack(t, camStream); }); }
+      pc.onicecandidate = function(ev){
+        if (ev.candidate && sigWs && sigWs.readyState === 1){
+          sigWs.send(JSON.stringify({ type:'ice', candidate: ev.candidate }));
+        }
+      };
+    }
+
+    function connectSignaling(){
+      if (!attemptId) return;
+      try { sigWs = new WebSocket(wsUrl()); } catch(e){ return scheduleReconnect(); }
+      sigWs.onmessage = function(ev){
+        var m; try { m = JSON.parse(ev.data); } catch(e){ return; }
+        if (m.type === 'peer-joined'){
+          // A viewer connected — make sure we have a fresh peer ready to answer.
+          newPeer();
+        } else if (m.type === 'offer'){
+          if (!pc) newPeer();
+          pc.setRemoteDescription(new RTCSessionDescription(m.sdp))
+            .then(function(){ return pc.createAnswer(); })
+            .then(function(ans){ return pc.setLocalDescription(ans).then(function(){ return ans; }); })
+            .then(function(ans){ if (sigWs && sigWs.readyState===1) sigWs.send(JSON.stringify({ type:'answer', sdp: ans })); })
+            .catch(function(){});
+        } else if (m.type === 'ice' && m.candidate && pc){
+          pc.addIceCandidate(new RTCIceCandidate(m.candidate)).catch(function(){});
+        } else if (m.type === 'peer-left'){
+          if (pc){ try { pc.close(); } catch(e){} pc = null; }
+        }
+      };
+      sigWs.onclose = function(){ scheduleReconnect(); };
+      sigWs.onerror = function(){ try { sigWs.close(); } catch(e){} };
+    }
+    function scheduleReconnect(){
+      if (wsRetry) return;
+      wsRetry = setTimeout(function(){ wsRetry = null; if (attemptId && camStream) connectSignaling(); }, 2500);
+    }
+
+    function startLive(){
+      connectSignaling();
+    }
+    function stopCamera(){
+      if (snapTimer){ clearInterval(snapTimer); snapTimer = null; }
+      if (wsRetry){ clearTimeout(wsRetry); wsRetry = null; }
+      if (pc){ try { pc.close(); } catch(e){} pc = null; }
+      if (sigWs){ try { sigWs.close(); } catch(e){} sigWs = null; }
+      if (camStream){ camStream.getTracks().forEach(function(t){t.stop();}); camStream = null; }
+    }
+
+    // ---- Navigator ----
+    var navGrid = document.getElementById('navGrid');
+    var dots = Array.prototype.slice.call(navGrid.querySelectorAll('.nav-dot'));
+    function buildNav(){
+      dots.forEach(function(dot){
+        dot.addEventListener('click', function(){
+          saveCurrent();
+          renderQuestion(parseInt(dot.getAttribute('data-index'),10));
+        });
+      });
+    }
+    function refreshNav(){
+      var n = 0;
+      Q.forEach(function(q,i){
+        var done = isAnswered(q.id);
+        if (done) n++;
+        dots[i].classList.toggle('answered', done && i !== current);
+        dots[i].classList.toggle('current', i === current);
+      });
+      document.getElementById('answeredCount').textContent = n;
+      document.getElementById('navBarFill').style.width = (Q.length ? n/Q.length*100 : 0) + '%';
+    }
+    function isAnswered(qid){
+      var a = answers[qid];
+      if (Array.isArray(a)) return a.length > 0;
+      return a !== undefined && a !== null && String(a).trim() !== '';
+    }
+
+    // ---- Render one question ----
+    function renderQuestion(idx){
+      current = Math.max(0, Math.min(idx, Q.length-1));
+      var q = Q[current];
+      document.getElementById('qCounter').textContent = 'Question ' + (current+1) + ' of ' + Q.length;
+      document.getElementById('qType').textContent = q.type;
+      document.getElementById('qMarks').textContent = q.points + ' pt' + (q.points === 1 ? '' : 's');
+      document.getElementById('qText').textContent = q.question;
+
+      var body = document.getElementById('qBody');
+      body.innerHTML = '';
+      var saved = answers[q.id];
+
+      if ((q.type === 'MCQ' || q.type === 'True/False') && q.options && q.options.length){
+        body.appendChild(optionList(q, 'radio', saved));
+      } else if (q.type === 'True/False'){
+        var tf = { options:[{label:'True',text:'True'},{label:'False',text:'False'}] };
+        body.appendChild(optionList(Object.assign({}, q, tf), 'radio', saved, true));
+      } else if (q.type === 'Multi-Select' && q.options && q.options.length){
+        body.appendChild(optionList(q, 'checkbox', saved));
+      } else {
+        var wrap = document.createElement('div');
+        var ta = document.createElement('textarea');
+        ta.className = 'text-answer'; ta.placeholder = 'Type your answer...';
+        ta.value = (saved != null ? saved : '');
+        ta.addEventListener('input', function(){ answers[q.id] = ta.value; refreshNav(); });
+        wrap.appendChild(ta); body.appendChild(wrap);
+      }
+
+      document.getElementById('prevBtn').disabled = (current === 0);
+      var next = document.getElementById('nextBtn');
+      next.querySelector('svg').style.display = (current === Q.length-1) ? 'none' : '';
+      next.childNodes[0].nodeValue = (current === Q.length-1) ? 'Save & Finish ' : 'Save & Next ';
+      refreshNav();
+      window.scrollTo({ top:0, behavior:'smooth' });
+    }
+
+    function optionList(q, kind, saved, useLabelAsValue){
+      var box = document.createElement('div'); box.className = 'opts';
+      var savedArr = Array.isArray(saved) ? saved : (saved != null ? [saved] : []);
+      q.options.forEach(function(o){
+        var val = useLabelAsValue ? o.label : o.label;
+        var lab = document.createElement('label'); lab.className = 'opt';
+        var input = document.createElement('input');
+        input.type = kind; input.name = 'q_' + q.id; input.value = val;
+        if (savedArr.indexOf(val) !== -1){ input.checked = true; lab.classList.add('checked'); }
+        input.addEventListener('change', function(){
+          if (kind === 'radio'){
+            box.querySelectorAll('.opt').forEach(function(x){x.classList.remove('checked');});
+            lab.classList.add('checked');
+            answers[q.id] = val;
+          } else {
+            lab.classList.toggle('checked', input.checked);
+            var got = Array.prototype.map.call(box.querySelectorAll('input:checked'), function(c){return c.value;});
+            answers[q.id] = got;
+          }
+          refreshNav();
+        });
+        var lb = document.createElement('span'); lb.className = 'opt-label'; lb.textContent = o.label;
+        var tx = document.createElement('span'); tx.className = 'opt-text'; tx.textContent = o.text;
+        lab.appendChild(input); lab.appendChild(lb); lab.appendChild(tx);
+        box.appendChild(lab);
+      });
+      return box;
+    }
+
+    // saveCurrent() is implicit — inputs write to `answers` live. Kept for the Save button UX.
+    function saveCurrent(){ refreshNav(); }
+
+    // ---- Controls ----
+    document.getElementById('prevBtn').addEventListener('click', function(){
+      if (current > 0){ saveCurrent(); renderQuestion(current-1); }
+    });
+    document.getElementById('nextBtn').addEventListener('click', function(){
+      saveCurrent();
+      if (current < Q.length-1) renderQuestion(current+1);
+      else openConfirm();
+    });
+    document.getElementById('saveBtn').addEventListener('click', function(){
+      saveCurrent();
+      var f = document.getElementById('saveFlash');
+      f.classList.add('show'); setTimeout(function(){ f.classList.remove('show'); }, 1400);
+    });
+
+    // ---- Timer ----
+    function startTimer(){
+      if (!E.limitMin || E.limitMin <= 0) return;
+      var box = document.getElementById('timerBox'); box.style.display = 'inline-flex';
+      var txt = document.getElementById('timerText');
+      var deadline = startedAt + E.limitMin*60*1000;
+      var tick = setInterval(function(){
+        var left = Math.max(0, Math.round((deadline - Date.now())/1000));
+        var m = Math.floor(left/60), s = left%60;
+        txt.textContent = m + ':' + (s<10?'0':'') + s;
+        if (left <= 60) box.classList.add('warn');
+        if (left <= 0){ clearInterval(tick); doSubmit(); }
+      }, 1000);
+    }
+
+    // ---- Submit ----
+    var modal = document.getElementById('confirmModal');
+    document.getElementById('submitExamBtn').addEventListener('click', openConfirm);
+    document.getElementById('cancelSubmit').addEventListener('click', function(){ modal.classList.remove('show'); });
+    document.getElementById('confirmSubmit').addEventListener('click', function(){ modal.classList.remove('show'); doSubmit(); });
+
+    function openConfirm(){
+      saveCurrent();
+      var n = 0; Q.forEach(function(q){ if(isAnswered(q.id)) n++; });
+      document.getElementById('mAnswered').textContent = n;
+      document.getElementById('mUnanswered').textContent = Q.length - n;
+      modal.classList.add('show');
+    }
+
+    function doSubmit(){
+      if (submitted) return; submitted = true;
+      var btn = document.getElementById('confirmSubmit'); if(btn){ btn.disabled = true; btn.textContent = 'Submitting...'; }
+      document.getElementById('submitExamBtn').disabled = true;
+      stopCamera();
+      fetch('/api/exam/' + encodeURIComponent(E.token) + '/submit', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          taker_name: window._taker.name,
+          taker_email: window._taker.email,
+          answers: answers,
+          attempt_id: attemptId,
+          duration_sec: Math.round((Date.now()-startedAt)/1000)
+        })
+      })
+      .then(function(r){ return r.json().then(function(d){ return {ok:r.ok, d:d}; }); })
+      .then(function(res){
+        if (res.ok && res.d.result_url) window.location.href = res.d.result_url;
+        else { submitted = false; alert(res.d.error || 'Could not submit. Please try again.');
+               document.getElementById('submitExamBtn').disabled = false; }
+      })
+      .catch(function(){ submitted = false; alert('Network error. Please try again.');
+                         document.getElementById('submitExamBtn').disabled = false; });
+    }
+
+    // ---- Instructions ----
+    document.getElementById('instructionsBtn').addEventListener('click', function(){
+      var base = '• Only one question is shown at a time.\n• Click any number to jump to that question.\n• Use Previous / Save & Next to move; answers are kept as you go.\n' + (E.limitMin ? '• The timer auto-submits at 0:00.\n' : '') + (E.proctored ? '• Your camera stays on for proctoring.\n' : '') + '• Click Submit Exam when you are done.';
+      var custom = (E.instructions || '').trim();
+      alert('Instructions\n\n' + (custom ? custom + '\n\n— How it works —\n' : '') + base);
+    });
+  })();
+  </script>
+</body>
+</html>

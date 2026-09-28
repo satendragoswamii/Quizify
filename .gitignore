@@ -1,0 +1,40 @@
+# --- Databases (users, settings, stored API keys, student data) ---
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# --- Secrets. .env holds provider API keys — never commit it. ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# --- Deployment copies & build artefacts (contain a copy of the database) ---
+quizify_deploy/
+quizify_deploy.zip
+*.zip
+
+# --- User uploads, generated output, local media ---
+uploads/*
+!uploads/.gitkeep
+media/
+test_output.*
+*.bak
+
+# --- Tool / OS / editor clutter ---
+.openclaw-cli-images/
+.DS_Store
+.idea/
+.vscode/
+.claude/

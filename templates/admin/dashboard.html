@@ -1,0 +1,179 @@
+{% extends "admin/base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="scope-note">
+  {% if showing_everyone %}
+    Showing <strong>every account</strong> on this installation.
+  {% else %}
+    Showing <strong>your own conversions</strong> only.
+  {% endif %}
+</div>
+
+<div class="stat-grid">
+  <div class="stat">
+    <div class="label">Conversions</div>
+    <div class="value">{{ stats.jobs }}</div>
+    <div class="sub">{{ stats.jobs_today }} today &middot; {{ stats.jobs_week }} this week</div>
+  </div>
+  <div class="stat">
+    <div class="label">Questions parsed</div>
+    <div class="value">{{ stats.questions }}</div>
+    <div class="sub">{{ stats.answered }} with answers</div>
+  </div>
+  <div class="stat">
+    <div class="label">Avg confidence</div>
+    <div class="value">{{ '%.0f'|format(stats.avg_confidence * 100) }}%</div>
+    <div class="sub">across successful runs</div>
+  </div>
+  <div class="stat">
+    <div class="label">Failures</div>
+    <div class="value">{{ stats.failed }}</div>
+    <div class="sub">{{ stats.jobs - stats.failed }} succeeded</div>
+  </div>
+  {% if showing_everyone and has_role('admin') %}
+  <div class="stat">
+    <div class="label">Users</div>
+    <div class="value">{{ stats.users }}</div>
+    <div class="sub">{{ stats.active_users }} active &middot; {{ stats.admins }} admin</div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="split">
+  <div>
+    <div class="card">
+      <div class="card-head">
+        <h2>Activity, last 14 days</h2>
+      </div>
+      <div class="card-body">
+        {% if stats.daily %}
+          <div class="bars">
+            {% for day in stats.daily %}
+              <div class="bar" style="height: {{ (day.count / max_daily * 100)|round(1) }}%"
+                   title="{{ day.day }}: {{ day.count }}"></div>
+            {% endfor %}
+          </div>
+          <div class="bars-axis">
+            <span>{{ stats.daily[0].day }}</span>
+            <span>{{ stats.daily[-1].day }}</span>
+          </div>
+        {% else %}
+          <div class="empty">No conversions recorded yet.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Recent conversions</h2>
+        <div class="spacer"></div>
+        {% if has_role('editor') %}
+          <a class="btn small" href="{{ url_for('admin.jobs') }}">View all</a>
+        {% endif %}
+      </div>
+      <div class="card-body tight">
+        {% if recent_jobs %}
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>When</th><th>Source</th><th>Engine</th>
+                <th class="num">Questions</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for job in recent_jobs %}
+              <tr>
+                <td class="muted">{{ job.created_at }}</td>
+                <td>
+                  {{ job.source_name or 'pasted text' }}
+                  {# The owning account is only worth naming when several are in view. #}
+                  <div class="muted">{{ job.source_format }}{% if showing_everyone and job.user_email %} &middot; {{ job.user_email }}{% endif %}</div>
+                </td>
+                <td><span class="badge mute">{{ job.engine or 'rules' }}</span></td>
+                <td class="num">{{ job.questions }}</td>
+                <td>
+                  {% if job.status == 'ok' %}
+                    <span class="badge ok">ok</span>
+                  {% else %}
+                    <span class="badge err" title="{{ job.error }}">{{ job.status }}</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+          <div class="empty">Nothing here yet. Convert a quiz to see it appear.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div>
+    {% if providers %}
+    <div class="card">
+      <div class="card-head"><h2>AI providers</h2></div>
+      <div class="card-body tight">
+        <div class="table-wrap">
+          <table>
+            <tbody>
+              {% for p in providers %}
+              <tr>
+                <td>
+                  {{ p.label }}
+                  {% if p.free_tier %}<span class="badge">free</span>{% endif %}
+                  <div class="muted mono">{{ p.effective_model or '—' }}</div>
+                </td>
+                <td style="text-align:right">
+                  {% if p.active %}<span class="badge ok">active</span>
+                  {% elif not p.enabled %}<span class="badge mute">off</span>
+                  {% else %}<span class="badge warn">no key</span>{% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if stats.by_engine %}
+    <div class="card">
+      <div class="card-head"><h2>Parsed by</h2></div>
+      <div class="card-body tight">
+        <div class="table-wrap">
+          <table>
+            <tbody>
+              {% for row in stats.by_engine %}
+              <tr><td>{{ row.engine }}</td><td class="num">{{ row.count }}</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if stats.by_format %}
+    <div class="card">
+      <div class="card-head"><h2>Top file types</h2></div>
+      <div class="card-body tight">
+        <div class="table-wrap">
+          <table>
+            <tbody>
+              {% for row in stats.by_format %}
+              <tr><td class="mono">{{ row.format }}</td><td class="num">{{ row.count }}</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

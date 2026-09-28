@@ -1,0 +1,114 @@
+{% extends "admin/base.html" %}
+{% block title %}Settings{% endblock %}
+
+{% macro text_field(key, label, hint='', type='text') %}
+  <div class="field">
+    <label for="{{ key }}">{{ label }}</label>
+    <input type="{{ type }}" id="{{ key }}" name="{{ key }}" value="{{ settings[key] }}"
+           placeholder="{{ defaults[key] }}">
+    {% if hint %}<span class="hint">{{ hint }}</span>{% endif %}
+  </div>
+{% endmacro %}
+
+{% macro switch(key, label, hint='') %}
+  <div class="field full check">
+    <input type="checkbox" id="{{ key }}" name="{{ key }}" value="1"
+           {% if settings[key] in ('true', '1', 'yes', 'on') %}checked{% endif %}>
+    <label for="{{ key }}">{{ label }}</label>
+  </div>
+  {% if hint %}<div class="field full"><span class="hint">{{ hint }}</span></div>{% endif %}
+{% endmacro %}
+
+{% block content %}
+<form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="card">
+    <div class="card-head"><h2>General</h2></div>
+    <div class="card-body">
+      <div class="form-grid">
+        {{ text_field('APP_NAME', 'Application name') }}
+        {{ text_field('QUIZ_MAX_UPLOAD_MB', 'Maximum upload size (MB)', 'Takes effect on restart.', 'number') }}
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Access</h2>
+      <p>Control who can use the converter itself. The admin panel always requires a sign-in.</p>
+    </div>
+    <div class="card-body">
+      <div class="form-grid">
+        {{ switch('QUIZ_REQUIRE_LOGIN', 'Require sign-in to use the converter',
+                  'Off by default, so the converter stays open to everyone.') }}
+        {{ switch('QUIZ_ALLOW_SIGNUP', 'Allow visitors to create their own account',
+                  'Leave off to add users yourself from the Users page.') }}
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>Conversion defaults</h2></div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="field">
+          <label for="QUIZ_DEFAULT_AI_MODE">AI assist mode</label>
+          <select id="QUIZ_DEFAULT_AI_MODE" name="QUIZ_DEFAULT_AI_MODE">
+            {% for value, text in [('auto', 'Auto — only when the rules are unsure'),
+                                   ('off', 'Off — rule-based parsing only'),
+                                   ('always', 'Always — send every document')] %}
+              <option value="{{ value }}" {% if settings['QUIZ_DEFAULT_AI_MODE'] == value %}selected{% endif %}>{{ text }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="QUIZ_DEFAULT_FORMAT">Default output format</label>
+          <select id="QUIZ_DEFAULT_FORMAT" name="QUIZ_DEFAULT_FORMAT">
+            {% for value in ['excel', 'csv', 'json'] %}
+              <option value="{{ value }}" {% if settings['QUIZ_DEFAULT_FORMAT'] == value %}selected{% endif %}>{{ value }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {{ switch('QUIZ_QUESTION_BANK', 'Keep a bank of downloaded questions',
+                  'Remembers every question that gets downloaded so repeats are flagged in the preview, and lets you export sets by subject or topic from the Question Bank page.') }}
+        {{ switch('QUIZ_LEARNING', 'Learn from corrections users save',
+                  'Reuses questions people fixed in the preview: the answer is restored automatically next time, and recent corrections are shown to the AI as examples. Only opted-in edits are ever stored.') }}
+        {{ text_field('QUIZ_DEFAULT_MAX_OPTIONS', 'Default option columns', '2 to 26.', 'number') }}
+        {{ text_field('QUIZ_ALLOWED_EXTENSIONS', 'Allowed file types',
+                      'Comma-separated, e.g. docx,pdf,txt. Blank allows every supported type.') }}
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>AI behaviour</h2>
+      <p>Per-provider keys and models live on the <a href="{{ url_for('admin.providers_view') }}">AI Providers</a> page.</p>
+    </div>
+    <div class="card-body">
+      <div class="form-grid">
+        {{ text_field('QUIZ_AI_PROVIDERS', 'Provider order',
+                      'Comma-separated names. Blank uses the priority set on the Providers page.') }}
+        {{ text_field('QUIZ_AI_TIMEOUT', 'Request timeout (seconds)', '', 'number') }}
+        {{ text_field('QUIZ_AI_RETRIES', 'Retries per provider', '', 'number') }}
+        {{ text_field('QUIZ_AI_MAX_CHUNKS', 'Maximum chunks per document',
+                      'Caps cost on very large files.', 'number') }}
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>Data retention</h2></div>
+    <div class="card-body">
+      <div class="form-grid">
+        {{ text_field('QUIZ_JOB_RETENTION_DAYS', 'Keep conversion history for (days)',
+                      'Used by the purge action on the Conversions page.', 'number') }}
+      </div>
+      <div class="actions">
+        <button type="submit" class="btn primary">Save settings</button>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

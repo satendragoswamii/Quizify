@@ -1,0 +1,94 @@
+{% extends "admin/base.html" %}
+{% block title %}My Profile{% endblock %}
+
+{% block content %}
+<div class="split">
+  <div>
+    <div class="card">
+      <div class="card-head"><h2>Your details</h2></div>
+      <div class="card-body">
+        <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="profile">
+          <div class="form-grid">
+            <div class="field">
+              <label for="name">Name</label>
+              <input type="text" id="name" name="name" value="{{ user.name or '' }}">
+            </div>
+            <div class="field">
+              <label>Email</label>
+              <input type="email" value="{{ user.email }}" disabled>
+              <span class="hint">Ask an administrator to change your email.</span>
+            </div>
+          </div>
+          <div class="actions">
+            <button type="submit" class="btn primary">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Change password</h2></div>
+      <div class="card-body">
+        <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="password">
+          <div class="form-grid">
+            <div class="field full">
+              <label for="cp">Current password</label>
+              <input type="password" id="cp" name="current_password" required autocomplete="current-password">
+            </div>
+            <div class="field">
+              <label for="np">New password</label>
+              <input type="password" id="np" name="password" required autocomplete="new-password">
+            </div>
+            <div class="field">
+              <label for="nc">Confirm</label>
+              <input type="password" id="nc" name="confirm" required autocomplete="new-password">
+            </div>
+          </div>
+          <div class="actions">
+            <button type="submit" class="btn">Change password</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-head"><h2>Account</h2></div>
+      <div class="card-body">
+        <dl class="kv">
+          <dt>Role</dt><dd><span class="badge">{{ user.role }}</span></dd>
+          <dt>Member since</dt><dd>{{ user.created_at }}</dd>
+          <dt>Last sign-in</dt><dd>{{ user.last_login_at or '—' }}</dd>
+          <dt>Today</dt><dd>{{ usage_today }} conversion(s)</dd>
+          <dt>Daily limit</dt><dd>{{ user.daily_quota or 'unlimited' }}</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Your recent conversions</h2></div>
+      <div class="card-body tight">
+        {% if recent_jobs %}
+        <div class="table-wrap">
+          <table>
+            <tbody>
+              {% for job in recent_jobs %}
+              <tr>
+                <td>{{ job.source_name or 'pasted text' }}<div class="muted">{{ job.created_at }}</div></td>
+                <td class="num">{{ job.questions }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}<div class="empty">No conversions yet.</div>{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,240 @@
+{% extends "admin/base.html" %}
+{% block title %}AI Providers{% endblock %}
+
+{# One provider, as a collapsed row that opens into its editor. Configured providers
+   start open because those are the ones an operator came here to change; the long tail
+   of unconfigured services stays folded away. #}
+{% macro provider(p, open=False) %}
+<details class="prov" {% if open %}open{% endif %}>
+  <summary class="prov-row">
+    <span class="prov-name">
+      {{ p.label }}
+      {% if p.free_tier %}<span class="badge">free</span>{% endif %}
+    </span>
+    <span class="prov-model mono">{{ p.effective_model or '—' }}</span>
+    <span class="prov-status">
+      {% if p.active %}<span class="badge ok">active</span>
+      {% elif not p.enabled %}<span class="badge mute">off</span>
+      {% elif p.needs_key %}<span class="badge warn">needs key</span>
+      {% else %}<span class="badge mute">idle</span>{% endif %}
+    </span>
+    <span class="prov-pri muted">#{{ p.priority }}</span>
+    <span class="prov-chev" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+    </span>
+  </summary>
+
+  <div class="prov-body">
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="name" value="{{ p.name }}">
+      <div class="form-grid">
+        <div class="field">
+          <label for="key-{{ p.name }}">API key</label>
+          <input type="password" id="key-{{ p.name }}" name="api_key" autocomplete="off"
+                 placeholder="{% if p.key_hint %}{{ p.key_hint }}{% elif p.key_from_env %}set via {{ p.key_env }}{% elif p.needs_key %}not set{% else %}not required{% endif %}">
+          <span class="hint">
+            {% if p.key_from_env %}Read from the <span class="mono">{{ p.key_env }}</span> environment variable.
+            {% elif p.key_hint %}A key is stored. Enter a new one to replace it.
+            {% elif p.needs_key %}Or set <span class="mono">{{ p.key_env }}</span> in the environment.
+            {% else %}Runs locally — no key needed.{% endif %}
+          </span>
+        </div>
+        <div class="field">
+          <label for="model-{{ p.name }}">Model</label>
+          <input type="text" id="model-{{ p.name }}" name="model" value="{{ p.model }}"
+                 placeholder="{{ p.effective_model }}">
+          <span class="hint">Blank uses <span class="mono">{{ p.effective_model or '—' }}</span>.</span>
+        </div>
+        <div class="field">
+          <label for="pri-{{ p.name }}">Priority</label>
+          <input type="number" id="pri-{{ p.name }}" name="priority" value="{{ p.priority }}" min="0">
+          <span class="hint">Lower is tried first.</span>
+        </div>
+        <div class="field">
+          <label for="url-{{ p.name }}">Base URL</label>
+          <input type="text" id="url-{{ p.name }}" name="base_url" value="{{ p.base_url }}"
+                 placeholder="{{ p.effective_base_url }}">
+          <span class="hint">Only for a proxy or self-hosted endpoint.</span>
+        </div>
+        <div class="field full check">
+          <input type="checkbox" id="en-{{ p.name }}" name="enabled" value="1"
+                 {% if p.enabled %}checked{% endif %}>
+          <label for="en-{{ p.name }}">Enabled</label>
+        </div>
+      </div>
+      <div class="actions">
+        <button type="submit" class="btn primary">Save</button>
+        {% if p.signup %}
+          <a class="btn" href="{{ p.signup }}" target="_blank" rel="noopener">Get a key &nearr;</a>
+        {% endif %}
+        {% if p.key_hint %}
+          <button type="submit" name="action" value="clear_key" class="btn"
+                  data-confirm="Remove the stored key for {{ p.label }}?">Clear key</button>
+        {% endif %}
+        <div class="spacer"></div>
+        {% if p.active %}
+          <span class="hint">Verify without leaving the page &rarr;</span>
+        {% endif %}
+      </div>
+    </form>
+
+    {% if p.active %}
+    <form method="post" action="{{ url_for('admin.provider_test', name=p.name) }}"
+          class="actions tight prov-test">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn small">Test connection</button>
+      <span class="hint">Sends one very small request to check the key and model.</span>
+    </form>
+    {% endif %}
+  </div>
+</details>
+{% endmacro %}
+
+{% block content %}
+
+{# The failover order, which is what actually happens at request time. #}
+<div class="card">
+  <div class="card-head">
+    <h2>Request order</h2>
+    <p>Each conversion tries these in turn and moves on when one is rate-limited or
+       unreachable. Change the order with the priority field on any provider.</p>
+  </div>
+  <div class="card-body">
+    {% if chain %}
+      <ol class="chain">
+        {% for p in chain %}
+          <li>
+            <span class="chain-step">{{ loop.index }}</span>
+            <span class="chain-name">{{ p.label }}</span>
+            <span class="chain-model mono">{{ p.effective_model or '—' }}</span>
+            {% if loop.first %}<span class="badge ok">first choice</span>{% endif %}
+          </li>
+        {% endfor %}
+      </ol>
+    {% else %}
+      <div class="empty">
+        No provider is configured, so conversions run on rule-based parsing only.
+        That handles most documents &mdash; add a key below only if you want AI assist.
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{# MessengerX is a companion platform, not a completion API, so it gets its own card:
+   the persona has to be registered before the bot can answer anything. #}
+<div class="card">
+  <div class="card-head">
+    <h2>MessengerX companion</h2>
+    {% if messengerx.chat_ready %}<span class="badge ok">answering chat</span>
+    {% elif messengerx.configured %}<span class="badge warn">persona only</span>
+    {% else %}<span class="badge mute">not configured</span>{% endif %}
+    <p>
+      Two separate steps. <strong>Saving the companion</strong> defines who the bot is
+      &mdash; that is the <code>/save-companion</code> call, and it does not answer
+      messages. <strong>Answering chat</strong> needs
+      <code>MESSENGERX_CHAT_PATH</code>: the gateway endpoint that takes a message and
+      returns a reply. Until that is set, MessengerX stays out of the chat chain so it
+      cannot fail on every question.
+    </p>
+  </div>
+  <div class="card-body">
+    <div class="form-grid">
+      <div class="field">
+        <span class="hint">Gateway host</span>
+        <span class="mono">{{ messengerx.host }}</span>
+      </div>
+      <div class="field">
+        <span class="hint">API key (MESSENGERX_API_KEY)</span>
+        <span class="badge {{ 'ok' if messengerx.has_key else 'err' }}">
+          {{ 'set' if messengerx.has_key else 'missing' }}</span>
+      </div>
+      <div class="field">
+        <span class="hint">Account (MESSENGERX_USER_ID)</span>
+        <span class="mono">{{ messengerx.user_id or '—' }}</span>
+      </div>
+      <div class="field">
+        <span class="hint">Chat path (MESSENGERX_CHAT_PATH)</span>
+        <span class="mono">{{ messengerx.chat_path or 'not set — chat disabled' }}</span>
+      </div>
+    </div>
+
+    <h3 class="subhead">Save the companion</h3>
+    <form method="post" action="{{ url_for('admin.messengerx_companion') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-grid">
+        <div class="field">
+          <label for="mx-slug">Slug</label>
+          <input type="text" id="mx-slug" name="slug" value="{{ messengerx.slug }}"
+                 placeholder="api-spider-man" required>
+          <span class="hint">Identifies the companion on MessengerX.</span>
+        </div>
+        <div class="field">
+          <label for="mx-name">Name</label>
+          <input type="text" id="mx-name" name="name" placeholder="Amazing Spider Man" required>
+        </div>
+        <div class="field full">
+          <label for="mx-desc">Description</label>
+          <input type="text" id="mx-desc" name="description"
+                 placeholder="Friendly neighborhood spider man from new york">
+        </div>
+        <div class="field full">
+          <label for="mx-prompt">Prompt</label>
+          <textarea id="mx-prompt" name="prompt" rows="4"
+                    placeholder="Who the companion is and how it should behave."></textarea>
+        </div>
+        <div class="field full">
+          <label for="mx-hint">First message</label>
+          <input type="text" id="mx-hint" name="first_message_hint"
+                 placeholder="Hi, I'm your friendly neighborhood spider man...">
+        </div>
+        <div class="field">
+          <label for="mx-image">Image URL</label>
+          <input type="text" id="mx-image" name="image_url" placeholder="https://...">
+        </div>
+        <div class="field">
+          <label for="mx-imageprompt">Image prompt</label>
+          <input type="text" id="mx-imageprompt" name="image_prompt"
+                 placeholder="Amazing spider man with marvel suit">
+        </div>
+        <div class="field full check">
+          <input type="checkbox" id="mx-mod" name="moderation" value="1">
+          <label for="mx-mod">Moderation</label>
+        </div>
+      </div>
+      <div class="actions">
+        <button type="submit" class="btn primary"
+                {% if not messengerx.configured %}disabled{% endif %}>Save companion</button>
+        {% if not messengerx.configured %}
+          <span class="hint">Set MESSENGERX_API_KEY and MESSENGERX_USER_ID first.</span>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if configured %}
+<div class="card">
+  <div class="card-head">
+    <h2>Configured</h2>
+    <p>{{ configured|length }} provider{{ '' if configured|length == 1 else 's' }} with a
+       key. A key saved here overrides the matching environment variable, and is never
+       shown again &mdash; leave the field blank to keep it.</p>
+  </div>
+  <div class="card-body tight">
+    {% for p in configured %}{{ provider(p, open=true) }}{% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-head">
+    <h2>Available to add</h2>
+    <p>{{ unconfigured|length }} more supported. Open one to add a key &mdash; several
+       offer a free tier.</p>
+  </div>
+  <div class="card-body tight">
+    {% for p in unconfigured %}{{ provider(p) }}{% endfor %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "admin/base.html" %}
+{% block title %}Import students{% endblock %}
+{% block heading %}Import students from CSV{% endblock %}
+{% block topbar %}
+  <a class="btn small" href="{{ url_for('admin.students') }}">&larr; All students</a>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:640px;">
+  <div class="card-head">
+    <h2>Upload a CSV</h2>
+    <p>Bulk-enroll students. The file needs a header row with these columns (order and casing don't matter):</p>
+  </div>
+  <div class="card-body">
+    <p style="margin-bottom:12px;">
+      <span class="badge mute">Batch</span>
+      <span class="badge mute">Name</span>
+      <span class="badge mute">Email</span>
+      <span class="badge mute">Roll Number</span>
+      <span class="badge mute">Password</span>
+    </p>
+    <ul class="muted" style="font-size:13px;line-height:1.7;margin:0 0 16px 18px;">
+      <li><b>Email</b> is required for every row.</li>
+      <li>Rows whose email already exists are skipped.</li>
+      <li>Password must be at least 8 characters. Leave the Password column blank to use the default below.</li>
+    </ul>
+    <p style="margin-bottom:18px;"><a class="btn small" href="{{ url_for('admin.student_import_sample') }}">Download sample CSV</a></p>
+
+    <form method="post" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field" style="margin-bottom:14px;">
+        <label>CSV file</label>
+        <input type="file" name="file" accept=".csv,text/csv" required>
+      </div>
+      <div class="field" style="margin-bottom:14px;">
+        <label>Default password <span class="muted">(used only for rows with a blank Password column)</span></label>
+        <input type="text" name="default_password" placeholder="e.g. welcome@123">
+      </div>
+      <div class="actions">
+        <button type="submit" class="btn">Import students</button>
+        <a class="btn" href="{{ url_for('admin.students') }}">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

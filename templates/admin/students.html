@@ -1,0 +1,60 @@
+{% extends "admin/base.html" %}
+{% block title %}Students{% endblock %}
+{% block heading %}Enrolled students{% endblock %}
+{% block topbar %}
+  <a class="btn small" href="{{ url_for('admin.student_import') }}">Import CSV</a>
+  <a class="btn small" href="{{ url_for('admin.student_new') }}">+ Enroll student</a>
+{% endblock %}
+
+{% block content %}
+<div class="toolbar">
+  <form method="get" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+    <select name="batch" onchange="this.form.submit()">
+      <option value="">All batches</option>
+      {% for b in batches %}
+        <option value="{{ b }}" {% if b == batch %}selected{% endif %}>{{ b }}</option>
+      {% endfor %}
+    </select>
+    <input type="text" name="q" value="{{ q }}" placeholder="Search name or email…"
+           style="padding:8px 12px;border:1.5px solid var(--admin-border,#d3dcec);border-radius:8px;">
+    <button type="submit" class="btn small">Filter</button>
+    {% if q or batch %}<a class="btn small" href="{{ url_for('admin.students') }}">Clear</a>{% endif %}
+  </form>
+  <div class="spacer"></div>
+  <span class="hint">{{ students|length }} student(s)</span>
+</div>
+
+<div class="card">
+  <div class="card-body tight">
+    {% if students %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Roll No</th><th>Name</th><th>Email</th><th>Batch</th><th>Status</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for s in students %}
+          <tr>
+            <td class="mono">{{ s.roll_no or '—' }}</td>
+            <td><strong>{{ s.name or '—' }}</strong></td>
+            <td class="muted">{{ s.email }}</td>
+            <td>{% if s.batch %}<span class="badge mute">{{ s.batch }}</span>{% else %}—{% endif %}</td>
+            <td>{% if s.is_active %}<span class="badge ok">active</span>{% else %}<span class="badge mute">disabled</span>{% endif %}</td>
+            <td style="white-space:nowrap;">
+              <a class="btn small" href="{{ url_for('admin.student_edit', user_id=s.id) }}">Edit</a>
+              <form method="post" action="{{ url_for('admin.student_delete', user_id=s.id) }}" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn small danger" data-confirm="Remove {{ s.name or s.email }}? Their assignments and attempts are also removed.">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="empty">No students enrolled yet. Click <strong>Enroll student</strong> to add one.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

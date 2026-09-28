@@ -1,0 +1,180 @@
+{% extends "admin/base.html" %}
+{% block title %}Edit Exam{% endblock %}
+{% block heading %}Edit exam{% endblock %}
+{% block topbar %}
+  <a class="btn small" href="{{ url_for('admin.exam_detail', exam_id=exam.id) }}">&larr; Back to results</a>
+{% endblock %}
+
+{% block content %}
+<form method="post" id="editForm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="questions_json" id="questionsJson">
+
+  <!-- Details -->
+  <div class="card">
+    <div class="card-head"><h2>Details</h2><p>Name and categorise this exam.</p></div>
+    <div class="card-body">
+      <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="field" style="grid-column:1/-1;">
+          <label>Quiz / Test name</label>
+          <input type="text" name="title" value="{{ exam.title }}" maxlength="200" required>
+        </div>
+        <div class="field"><label>Subject</label><input type="text" name="subject" value="{{ exam.subject }}"></div>
+        <div class="field"><label>Topic</label><input type="text" name="topic" value="{{ exam.topic }}"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Instructions -->
+  <div class="card">
+    <div class="card-head"><h2>Instructions</h2><p>Shown to each learner before the exam begins.</p></div>
+    <div class="card-body">
+      <textarea name="instructions" rows="5" placeholder="e.g. Answer all questions. Do not refresh the page. Keep your camera on..."
+        style="width:100%;padding:12px 14px;border:1.5px solid var(--admin-border,#d3dcec);border-radius:10px;font-family:inherit;font-size:14px;resize:vertical;">{{ exam.instructions }}</textarea>
+    </div>
+  </div>
+
+  <!-- Schedule -->
+  <div class="card">
+    <div class="card-head"><h2>Schedule</h2><p>When learners may take this exam. Leave blank for no limit.</p></div>
+    <div class="card-body">
+      <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;">
+        <div class="field"><label>Available from</label><input type="datetime-local" name="available_from" value="{{ exam.available_from }}"></div>
+        <div class="field"><label>Available until</label><input type="datetime-local" name="available_until" value="{{ exam.available_until }}"></div>
+        <div class="field"><label>Time limit (min, 0 = none)</label><input type="number" name="time_limit_min" min="0" max="600" value="{{ exam.time_limit_min }}"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Options -->
+  <div class="card">
+    <div class="card-head"><h2>Options</h2></div>
+    <div class="card-body">
+      <div style="display:flex;gap:22px;flex-wrap:wrap;">
+        <label style="display:flex;gap:8px;align-items:center;"><input type="checkbox" name="shuffle_q" {% if exam.shuffle_q %}checked{% endif %}> Shuffle questions</label>
+        <label style="display:flex;gap:8px;align-items:center;"><input type="checkbox" name="shuffle_opts" {% if exam.shuffle_opts %}checked{% endif %}> Shuffle options</label>
+        <label style="display:flex;gap:8px;align-items:center;"><input type="checkbox" name="reveal_answers" {% if exam.reveal_answers %}checked{% endif %}> Show answers after submit</label>
+        <label style="display:flex;gap:8px;align-items:center;"><input type="checkbox" name="allow_pdf" {% if exam.allow_pdf %}checked{% endif %}> Allow result PDF</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Proctoring -->
+  <div class="card">
+    <div class="card-head"><h2>Camera proctoring</h2><p>When on, takers must grant camera access; snapshots are captured for you to review live.</p></div>
+    <div class="card-body">
+      <div style="display:flex;gap:22px;flex-wrap:wrap;align-items:center;">
+        <label style="display:flex;gap:8px;align-items:center;font-weight:700;"><input type="checkbox" name="proctored" {% if exam.proctored %}checked{% endif %}> Enable camera proctoring</label>
+        <span class="field" style="display:flex;gap:8px;align-items:center;">
+          <label style="margin:0;">Snapshot every</label>
+          <input type="number" name="proctor_interval" min="5" max="300" value="{{ exam.proctor_interval }}" style="width:80px;"> sec
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Questions editor -->
+  <div class="card">
+    <div class="card-head">
+      <h2>Questions <span class="hint" id="qCount">({{ exam.question_count }})</span></h2>
+      <p>Edit text, options and the correct answer. Changes replace the stored questions.</p>
+    </div>
+    <div class="card-body">
+      <div id="qEditor"></div>
+      <button type="button" class="btn small" id="addQ" style="margin-top:12px;">+ Add question</button>
+    </div>
+  </div>
+
+  <div class="actions" style="margin:18px 0;">
+    <button type="submit" class="btn">Save changes</button>
+    <a class="btn" href="{{ url_for('admin.exam_detail', exam_id=exam.id) }}">Cancel</a>
+  </div>
+</form>
+
+<script>
+  (function(){
+    var QUESTIONS = {{ exam.questions | tojson }};
+    var TYPES = ['MCQ','Multi-Select','True/False','Numeric','Fill in the Blank','Short Answer'];
+    var editor = document.getElementById('qEditor');
+
+    function h(tag, attrs, kids){
+      var el = document.createElement(tag);
+      for (var k in (attrs||{})){ if(k==='class') el.className=attrs[k]; else if(k==='html') el.innerHTML=attrs[k]; else el.setAttribute(k,attrs[k]); }
+      (kids||[]).forEach(function(c){ el.appendChild(typeof c==='string'?document.createTextNode(c):c); });
+      return el;
+    }
+
+    function render(){
+      editor.innerHTML='';
+      QUESTIONS.forEach(function(q, i){
+        var card = h('div', {class:'q-edit', style:'border:1px solid var(--admin-border,#d3dcec);border-radius:12px;padding:16px;margin-bottom:12px;'});
+        // header row
+        var head = h('div', {style:'display:flex;gap:10px;align-items:center;margin-bottom:10px;'});
+        head.appendChild(h('strong', {}, ['Q'+(i+1)]));
+        var sel = h('select', {style:'padding:6px 10px;border:1.5px solid var(--admin-border,#d3dcec);border-radius:8px;'});
+        TYPES.forEach(function(t){ var o=h('option',{value:t},[t]); if(t===q.type)o.selected=true; sel.appendChild(o); });
+        sel.addEventListener('change', function(){ q.type=sel.value; render(); });
+        head.appendChild(sel);
+        var mk = h('input', {type:'number', min:'0', step:'0.5', value:(q.points!=null?q.points:1), title:'Marks', style:'width:70px;padding:6px 8px;border:1.5px solid var(--admin-border,#d3dcec);border-radius:8px;'});
+        mk.addEventListener('input', function(){ q.points=parseFloat(mk.value)||1; });
+        head.appendChild(mk); head.appendChild(h('span',{class:'muted'},['pts']));
+        var del = h('button', {type:'button', class:'btn small danger', style:'margin-left:auto;'}, ['Remove']);
+        del.addEventListener('click', function(){ QUESTIONS.splice(i,1); render(); });
+        head.appendChild(del);
+        card.appendChild(head);
+
+        // question text
+        var qt = h('textarea', {rows:'2', style:'width:100%;padding:9px 12px;border:1.5px solid var(--admin-border,#d3dcec);border-radius:8px;font-family:inherit;'});
+        qt.value = q.question||''; qt.addEventListener('input', function(){ q.question=qt.value; });
+        card.appendChild(qt);
+
+        // options (for choice types)
+        if (q.type==='MCQ' || q.type==='Multi-Select' || q.type==='True/False'){
+          q.options = q.options || [];
+          q.answer_labels = q.answer_labels || [];
+          var opts = h('div', {style:'margin-top:10px;display:flex;flex-direction:column;gap:6px;'});
+          q.options.forEach(function(o, oi){
+            var row = h('div', {style:'display:flex;gap:8px;align-items:center;'});
+            var correct = h('input', {type:(q.type==='Multi-Select'?'checkbox':'radio'), name:'correct_'+i, title:'Correct'});
+            if (q.answer_labels.indexOf(o.label)!==-1) correct.checked=true;
+            correct.addEventListener('change', function(){
+              if (q.type==='Multi-Select'){ q.answer_labels = q.options.filter(function(x,xi){ return row.parentNode.children[xi].querySelector('input[type=checkbox]').checked; }).map(function(x){return x.label;}); }
+              else { q.answer_labels=[o.label]; }
+            });
+            var lbl = h('input', {value:o.label||String.fromCharCode(65+oi), style:'width:44px;padding:6px;border:1.5px solid var(--admin-border,#d3dcec);border-radius:6px;text-align:center;'});
+            lbl.addEventListener('input', function(){ o.label=lbl.value; });
+            var txt = h('input', {value:o.text||'', placeholder:'Option text', style:'flex:1;padding:6px 10px;border:1.5px solid var(--admin-border,#d3dcec);border-radius:6px;'});
+            txt.addEventListener('input', function(){ o.text=txt.value; });
+            var rm = h('button', {type:'button', class:'btn small'}, ['×']);
+            rm.addEventListener('click', function(){ q.options.splice(oi,1); render(); });
+            row.appendChild(correct); row.appendChild(lbl); row.appendChild(txt); row.appendChild(rm);
+            opts.appendChild(row);
+          });
+          var addOpt = h('button', {type:'button', class:'btn small', style:'align-self:flex-start;'}, ['+ Option']);
+          addOpt.addEventListener('click', function(){ q.options.push({label:String.fromCharCode(65+q.options.length), text:''}); render(); });
+          opts.appendChild(addOpt);
+          card.appendChild(opts);
+        } else {
+          // text/numeric answer
+          var ans = h('input', {value:q.answer_text||'', placeholder:'Correct answer (for auto-grading)', style:'width:100%;margin-top:10px;padding:9px 12px;border:1.5px solid var(--admin-border,#d3dcec);border-radius:8px;'});
+          ans.addEventListener('input', function(){ q.answer_text=ans.value; });
+          card.appendChild(ans);
+        }
+        editor.appendChild(card);
+      });
+      document.getElementById('qCount').textContent = '('+QUESTIONS.length+')';
+    }
+
+    document.getElementById('addQ').addEventListener('click', function(){
+      QUESTIONS.push({type:'MCQ', question:'', options:[{label:'A',text:''},{label:'B',text:''}], answer_labels:[], points:1});
+      render();
+    });
+
+    document.getElementById('editForm').addEventListener('submit', function(){
+      document.getElementById('questionsJson').value = JSON.stringify(QUESTIONS);
+    });
+
+    render();
+  })();
+</script>
+{% endblock %}

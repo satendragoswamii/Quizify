@@ -1,0 +1,77 @@
+{% extends "admin/base.html" %}
+{% block title %}Corrections{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-head">
+    <h2>Learned corrections</h2>
+    <p>
+      Questions a user fixed in the preview and chose to save. When the same question
+      is parsed again its answer is restored automatically, and the most relevant
+      entries are shown to the AI backend as worked examples.
+      {% if not learning_enabled %}
+        <strong>The feedback loop is currently switched off</strong> &mdash; set
+        <code>QUIZ_LEARNING</code> to <code>true</code> in Settings to use these.
+      {% endif %}
+    </p>
+  </div>
+  <div class="card-body tight">
+    {% if corrections %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>When</th><th>Question</th><th>Subject</th><th>Topic</th>
+            <th>Changed</th><th>Source</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in corrections %}
+          <tr>
+            <td class="muted">{{ c.created_at }}</td>
+            <td>{{ c.question[:110] }}{% if c.question|length > 110 %}&hellip;{% endif %}</td>
+            <td class="muted">{{ c.subject or '—' }}</td>
+            <td class="muted">{{ c.topic or '—' }}</td>
+            <td>
+              {% for field in c.fields.split(',') if field %}
+                <span class="badge mute">{{ field }}</span>
+              {% endfor %}
+            </td>
+            <td class="muted mono">{{ c.source_format or 'text' }} / {{ c.engine or '—' }}</td>
+            <td>
+              <form method="post" action="{{ url_for('admin.corrections_delete', correction_id=c.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn small danger">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="empty">
+        No corrections stored yet. They appear here once someone edits a question in
+        the preview and ticks &ldquo;Remember my corrections&rdquo; before downloading.
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if corrections %}
+<div class="card">
+  <div class="card-head">
+    <h2>Clear all</h2>
+    <p>Removes every stored correction. Parsing keeps working; it simply stops
+       benefiting from past fixes.</p>
+  </div>
+  <div class="card-body">
+    <form method="post" action="{{ url_for('admin.corrections_clear') }}"
+          onsubmit="return confirm('Delete all {{ total }} stored correction(s)?');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn danger">Delete all {{ total }} correction(s)</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

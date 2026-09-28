@@ -1,0 +1,43 @@
+{% extends "admin/base.html" %}
+{% block title %}First-run setup{% endblock %}
+{% block anonymous %}
+<div class="auth-page">
+  <div class="auth-card">
+    <h1>Create your administrator</h1>
+    <p class="lede">
+      No accounts exist yet. This one-time form creates the first administrator and
+      then closes permanently.
+    </p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field">
+        <label for="name">Your name</label>
+        <input type="text" id="name" name="name" value="{{ name }}" autocomplete="name">
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" value="{{ email }}" required autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required autocomplete="new-password">
+        <span class="hint">At least 8 characters.</span>
+      </div>
+      <div class="field">
+        <label for="confirm">Confirm password</label>
+        <input type="password" id="confirm" name="confirm" required autocomplete="new-password">
+      </div>
+      <div class="actions">
+        <button type="submit" class="btn primary">Create administrator</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

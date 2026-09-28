@@ -1,0 +1,328 @@
+{#
+  Student exam page. Differences from the public take page:
+   - Instructions gate: the student must read instructions and click Agree & Confirm
+     before the exam opens (if the exam has instructions).
+   - No self-view: the webcam is captured and streamed for proctoring but the student
+     never sees their own camera on screen.
+   - An ⓘ button reopens the instructions in a popup any time during the exam.
+   - Identity comes from the logged-in student (no name/email fields).
+#}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ exam.title }} &middot; {{ app_name }}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+    :root{--primary:#3358D4;--primary-dark:#2544AE;--accent:#6E7BF2;--grad:linear-gradient(135deg,#3358D4,#6E7BF2);
+      --ink:#10162a;--muted:#6b7280;--border:#e6eaf3;--card:#fff;--bg:#f4f6fd;--ok:#12A150;--ok-soft:#e7f6ee;--soft:#eef2fe;--radius:16px;}
+    body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);line-height:1.6;min-height:100vh;
+      background:radial-gradient(120% 70% at 100% 0%,#e9edfe 0%,transparent 55%),radial-gradient(90% 60% at 0% 100%,#efeafe 0%,transparent 50%),var(--bg);}
+    button{font-family:inherit;}
+
+    /* Instructions gate */
+    .gate{min-height:100vh;display:grid;place-items:center;padding:24px;}
+    .gate-card{width:min(600px,100%);background:var(--card);border:1px solid var(--border);border-radius:22px;padding:36px 38px;box-shadow:0 24px 56px rgba(20,30,80,.12);}
+    .brand{display:inline-flex;align-items:center;gap:11px;font-weight:800;font-size:20px;}
+    .brand .cap{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--grad);}
+    .brand .cap svg{width:20px;height:20px;fill:#fff;}
+    .brand span{color:var(--primary);}
+    .gate h1{font-size:22px;font-weight:800;margin-top:16px;}
+    .gate .meta{color:var(--muted);font-size:14px;margin-top:6px;display:flex;gap:14px;flex-wrap:wrap;}
+    .gate .meta b{color:var(--ink);}
+    .instr-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--primary);margin:22px 0 8px;}
+    .instr-body{background:var(--soft);border:1px solid #dbe3fb;border-radius:12px;padding:16px 18px;font-size:14.5px;line-height:1.6;white-space:pre-wrap;max-height:280px;overflow-y:auto;}
+    .proctor-note{margin-top:14px;display:flex;gap:10px;align-items:flex-start;background:#fdf6ec;border:1px solid #f4dcae;border-radius:12px;padding:12px 14px;color:#8a5a0a;font-size:13px;}
+    .agree{display:flex;gap:10px;align-items:flex-start;margin-top:18px;font-size:14px;cursor:pointer;}
+    .agree input{width:20px;height:20px;margin-top:1px;accent-color:var(--primary);flex-shrink:0;}
+    .gate-btn{width:100%;height:52px;margin-top:18px;border:none;border-radius:13px;cursor:pointer;background:var(--grad);color:#fff;font-size:16px;font-weight:700;box-shadow:0 12px 26px rgba(51,88,212,.3);}
+    .gate-btn:disabled{opacity:.5;cursor:not-allowed;}
+    .gate-err{display:none;margin-top:14px;padding:11px 14px;border-radius:11px;background:#fdecec;border:1px solid #f6c9c4;color:#b23b32;font-size:13.5px;}
+
+    /* Exam shell */
+    .exam{display:none;}
+    .exam.active{display:block;}
+    .topbar{background:var(--card);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;position:sticky;top:0;z-index:20;box-shadow:0 2px 8px rgba(25,35,90,.05);}
+    .topbar h1{font-size:17px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px;}
+    .topbar .sub{font-size:12px;color:var(--muted);}
+    .spacer{flex:1;}
+    .info-btn{width:38px;height:38px;border-radius:10px;border:1.5px solid var(--border);background:#fff;color:var(--primary);font-size:17px;font-weight:800;cursor:pointer;}
+    .info-btn:hover{background:var(--soft);}
+    .timer{display:none;align-items:center;gap:7px;padding:8px 14px;border-radius:11px;background:var(--soft);color:var(--primary);font-weight:800;font-size:15px;border:1px solid #d7e0fb;}
+    .timer.show{display:inline-flex;}
+    .timer.warn{background:#fdecec;color:#b23b32;border-color:#f6c9c4;}
+    .btn-submit{border:none;border-radius:11px;cursor:pointer;background:var(--grad);color:#fff;font-weight:700;font-size:14px;padding:11px 18px;box-shadow:0 8px 18px rgba(51,88,212,.28);}
+    .rec-dot{display:none;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#b23b32;}
+    .rec-dot.show{display:inline-flex;}
+
+    .content{display:grid;grid-template-columns:240px 1fr;gap:22px;padding:24px;align-items:start;max-width:1100px;margin:0 auto;}
+    .nav-panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:0 2px 8px rgba(25,35,90,.05);position:sticky;top:84px;}
+    .nav-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);}
+    .nav-progress{font-size:14px;font-weight:700;margin-top:8px;}.nav-progress span{color:var(--primary);}
+    .nav-bar{height:7px;border-radius:999px;background:#e9eefb;margin-top:9px;overflow:hidden;}
+    .nav-bar-fill{height:100%;width:0;background:var(--grad);transition:width .3s;}
+    .nav-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-top:15px;max-height:320px;overflow-y:auto;}
+    .nav-dot{aspect-ratio:1;border:1.5px solid var(--border);border-radius:9px;background:#fff;font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+    .nav-dot.answered{background:var(--ok-soft);border-color:var(--ok);color:var(--ok);}
+    .nav-dot.current{background:var(--grad);border-color:transparent;color:#fff;}
+    .q-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:30px 32px;box-shadow:0 8px 26px rgba(25,35,90,.09);min-height:340px;display:flex;flex-direction:column;}
+    .q-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+    .q-counter{font-size:13px;font-weight:700;color:var(--primary);background:var(--soft);padding:6px 13px;border-radius:999px;}
+    .q-type{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);}
+    .q-marks{margin-left:auto;font-size:13px;font-weight:700;}
+    .q-text{font-size:19px;font-weight:600;line-height:1.5;margin-bottom:22px;}
+    .opts{display:flex;flex-direction:column;gap:12px;}
+    .opt{display:flex;align-items:center;gap:14px;padding:16px 18px;border:1.5px solid var(--border);border-radius:13px;cursor:pointer;}
+    .opt:hover{border-color:var(--primary);background:var(--soft);}
+    .opt.checked{border-color:var(--primary);background:var(--soft);box-shadow:0 0 0 3px rgba(51,88,212,.1);}
+    .opt input{width:20px;height:20px;accent-color:var(--primary);flex-shrink:0;}
+    .opt-label{font-weight:800;color:var(--primary);min-width:22px;}
+    .text-answer{width:100%;padding:14px 16px;border:1.5px solid var(--border);border-radius:13px;font:inherit;font-size:15px;resize:vertical;min-height:60px;}
+    .controls{display:flex;align-items:center;gap:12px;margin-top:26px;padding-top:22px;border-top:1px solid var(--border);}
+    .btn{border:1.5px solid var(--border);background:#fff;color:var(--ink);border-radius:12px;padding:12px 20px;font-size:14.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;}
+    .btn:disabled{opacity:.45;cursor:not-allowed;}
+    .btn-save{color:var(--primary);border-color:#c7d4f7;background:var(--soft);}
+    .btn-next{margin-left:auto;background:var(--grad);color:#fff;border-color:transparent;}
+    .save-flash{font-size:13px;color:var(--ok);font-weight:600;opacity:0;transition:opacity .2s;}
+    .save-flash.show{opacity:1;}
+
+    /* Modals (instructions popup + confirm) */
+    .overlay{display:none;position:fixed;inset:0;background:rgba(16,22,42,.5);backdrop-filter:blur(3px);z-index:100;place-items:center;padding:24px;}
+    .overlay.show{display:grid;}
+    .modal{background:#fff;border-radius:20px;padding:30px;max-width:520px;width:100%;box-shadow:0 24px 56px rgba(20,30,80,.2);}
+    .modal h2{font-size:20px;font-weight:800;}
+    .modal .mbody{margin-top:12px;font-size:14.5px;line-height:1.6;color:#334;white-space:pre-wrap;max-height:50vh;overflow-y:auto;}
+    .modal-actions{display:flex;gap:12px;margin-top:20px;justify-content:flex-end;}
+    .modal-actions .btn-go{background:var(--grad);color:#fff;border-color:transparent;}
+    .modal-stats{display:flex;gap:10px;justify-content:center;margin:16px 0;flex-wrap:wrap;}
+    .modal-stats .st{background:var(--soft);border-radius:11px;padding:10px 16px;font-size:13px;font-weight:600;text-align:center;}
+    .modal-stats .st b{display:block;font-size:20px;color:var(--primary);}
+    @media(max-width:820px){.content{grid-template-columns:1fr;}.nav-panel{position:static;}.nav-grid{grid-template-columns:repeat(8,1fr);}}
+  </style>
+</head>
+<body>
+  <!-- Instructions gate -->
+  <div class="gate" id="gate">
+    <div class="gate-card">
+      <div class="brand"><span class="cap"><svg viewBox="0 0 24 24"><path d="M12 3 1 8l11 5 9-4.09V15h2V8L12 3zM5 13.18V17c0 1.66 3.13 3 7 3s7-1.34 7-3v-3.82l-7 3.18-7-3.18z"/></svg></span>Quiz<span>ify</span></div>
+      <h1>{{ exam.title }}</h1>
+      <div class="meta">
+        {% if exam.subject %}<span><b>{{ exam.subject }}</b></span>{% endif %}
+        <span><b>{{ exam.question_count }}</b> questions</span>
+        <span><b>{{ exam.total_points }}</b> points</span>
+        {% if exam.time_limit_min %}<span><b>{{ exam.time_limit_min }} min</b> limit</span>{% endif %}
+      </div>
+
+      <div class="instr-title">Instructions</div>
+      <div class="instr-body">{{ exam.instructions if exam.instructions else 'Read each question carefully and choose your answer. Use Previous / Save & Next to move between questions; your answers are saved as you go. Click Submit when you are done.' }}</div>
+
+      {% if exam.proctored %}
+      <div class="proctor-note">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+        <span>This is a <b>proctored exam</b>. Your camera and microphone will be monitored. You must allow access to begin.</span>
+      </div>
+      {% endif %}
+
+      <label class="agree"><input type="checkbox" id="agreeChk"> <span>I have read and understood the instructions{% if exam.proctored %}, and I consent to camera &amp; microphone monitoring{% endif %}.</span></label>
+      <div class="gate-err" id="gateErr"></div>
+      <button type="button" class="gate-btn" id="agreeBtn" disabled>
+        {% if exam.proctored %}Agree &amp; Allow Camera{% else %}Agree &amp; Start Exam{% endif %}
+      </button>
+    </div>
+  </div>
+
+  <!-- Exam -->
+  <div class="exam" id="exam">
+    <div class="topbar">
+      <div>
+        <h1>{{ exam.title }}</h1>
+        <div class="sub">{{ student.name or student.email }}{% if student.roll_no %} · {{ student.roll_no }}{% endif %}</div>
+      </div>
+      <div class="spacer"></div>
+      <span class="rec-dot" id="recDot">● REC</span>
+      <button type="button" class="info-btn" id="infoBtn" title="View instructions" aria-label="View instructions">&#9432;</button>
+      <div class="timer" id="timer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span id="timerText">--:--</span></div>
+      <button type="button" class="btn-submit" id="submitBtn">Submit Exam</button>
+    </div>
+
+    <div class="content">
+      <aside class="nav-panel">
+        <div class="nav-title">Questions</div>
+        <div class="nav-progress"><span id="answeredCount">0</span> of {{ exam.question_count }} answered</div>
+        <div class="nav-bar"><div class="nav-bar-fill" id="navBarFill"></div></div>
+        <div class="nav-grid" id="navGrid">
+          {% for q in questions %}<button type="button" class="nav-dot" data-index="{{ loop.index0 }}">{{ loop.index }}</button>{% endfor %}
+        </div>
+      </aside>
+      <div>
+        <div class="q-card">
+          <div class="q-meta">
+            <span class="q-counter" id="qCounter">Question 1 of {{ exam.question_count }}</span>
+            <span class="q-type" id="qType"></span>
+            <span class="q-marks" id="qMarks"></span>
+          </div>
+          <div class="q-text" id="qText"></div>
+          <div id="qBody"></div>
+          <div class="controls">
+            <button type="button" class="btn" id="prevBtn">&larr; Previous</button>
+            <button type="button" class="btn btn-save" id="saveBtn">Save</button>
+            <span class="save-flash" id="saveFlash">✓ Saved</span>
+            <button type="button" class="btn btn-next" id="nextBtn">Save &amp; Next &rarr;</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- hidden video used only to capture proctoring frames; never shown to the student -->
+    <video id="camPreview" autoplay muted playsinline style="display:none;width:1px;height:1px;position:absolute;left:-9999px;"></video>
+  </div>
+
+  <!-- Instructions popup (reopened via ⓘ) -->
+  <div class="overlay" id="instrModal">
+    <div class="modal">
+      <h2>Instructions</h2>
+      <div class="mbody">{{ exam.instructions if exam.instructions else 'Read each question carefully and choose your answer. Use Previous / Save & Next to move between questions; your answers are saved as you go. Click Submit when you are done.' }}</div>
+      <div class="modal-actions"><button type="button" class="btn btn-go" id="instrClose">Got it</button></div>
+    </div>
+  </div>
+
+  <!-- Confirm submit -->
+  <div class="overlay" id="confirmModal">
+    <div class="modal" style="text-align:center;">
+      <h2>Submit your exam?</h2>
+      <p style="color:var(--muted);margin-top:8px;">You can&rsquo;t change your answers after submitting.</p>
+      <div class="modal-stats"><div class="st"><b id="mAnswered">0</b>Answered</div><div class="st"><b id="mUnanswered">0</b>Unanswered</div></div>
+      <div class="modal-actions" style="justify-content:center;">
+        <button type="button" class="btn" id="cancelSubmit">Keep working</button>
+        <button type="button" class="btn btn-go" id="confirmSubmit">Submit now</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.EXAM = {
+      token: {{ exam.token | tojson }},
+      limitMin: {{ exam.time_limit_min }},
+      questions: {{ questions | tojson }},
+      shuffleOpts: {{ 'true' if exam.shuffle_opts else 'false' }},
+      proctored: {{ 'true' if exam.proctored else 'false' }},
+      proctorInterval: {{ exam.proctor_interval }}
+    };
+  </script>
+  <script>
+  (function(){
+    var E = window.EXAM;
+    var Q = E.questions.slice();
+    var startedAt=null, submitted=false, current=0, answers={}, attemptId=null;
+    var camStream=null, snapTimer=null, pc=null, sigWs=null, wsRetry=null;
+
+    // ---- Instructions gate ----
+    var agreeChk=document.getElementById('agreeChk'), agreeBtn=document.getElementById('agreeBtn');
+    agreeChk.addEventListener('change', function(){ agreeBtn.disabled = !agreeChk.checked; });
+    function gateErr(m){ var e=document.getElementById('gateErr'); e.textContent=m; e.style.display='block'; }
+    agreeBtn.addEventListener('click', function(){
+      if (!agreeChk.checked) return;
+      agreeBtn.disabled=true;
+      if (E.proctored){
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+          gateErr('Your browser does not support camera/microphone access, which this exam requires.'); agreeBtn.disabled=false; return;
+        }
+        navigator.mediaDevices.getUserMedia({video:{width:640,height:480},audio:{echoCancellation:true,noiseSuppression:true}})
+          .then(function(stream){
+            camStream=stream; document.getElementById('camPreview').srcObject=stream;
+            return fetch('/api/exam/'+encodeURIComponent(E.token)+'/start',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+          })
+          .then(function(r){ return r.json().then(function(d){ return {ok:r.ok,d:d}; }); })
+          .then(function(res){ if(!res.ok) throw new Error(res.d.error||'Could not start the exam.'); attemptId=res.d.attempt_id; beginExam(); startSnapshots(res.d.interval||E.proctorInterval); startLive(); document.getElementById('recDot').classList.add('show'); })
+          .catch(function(err){ if(camStream){camStream.getTracks().forEach(function(t){t.stop();});camStream=null;} gateErr(err&&err.name==='NotAllowedError'?'Camera/microphone access was denied. This proctored exam cannot start without it.':(err.message||'Could not access the camera.')); agreeBtn.disabled=false; });
+      } else {
+        beginExam();
+      }
+    });
+
+    function beginExam(){
+      document.getElementById('gate').style.display='none';
+      document.getElementById('exam').classList.add('active');
+      startedAt=Date.now(); buildNav(); renderQuestion(0); startTimer();
+    }
+
+    // ---- Instructions popup (ⓘ) ----
+    var instrModal=document.getElementById('instrModal');
+    document.getElementById('infoBtn').addEventListener('click', function(){ instrModal.classList.add('show'); });
+    document.getElementById('instrClose').addEventListener('click', function(){ instrModal.classList.remove('show'); });
+    instrModal.addEventListener('click', function(e){ if(e.target===instrModal) instrModal.classList.remove('show'); });
+
+    // ---- Proctoring capture (student never sees the video) ----
+    function captureFrame(qy){ var v=document.getElementById('camPreview'); if(!v||!v.videoWidth) return null; var c=document.createElement('canvas'); c.width=320; c.height=Math.round(320*v.videoHeight/v.videoWidth); c.getContext('2d').drawImage(v,0,0,c.width,c.height); try{return c.toDataURL('image/jpeg',qy||0.6);}catch(e){return null;} }
+    function sendSnapshot(){ var img=captureFrame(0.6); if(!img||!attemptId) return; fetch('/api/exam/'+encodeURIComponent(E.token)+'/snapshot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({attempt_id:attemptId,image:img})}).catch(function(){}); }
+    function startSnapshots(iv){ setTimeout(sendSnapshot,1500); snapTimer=setInterval(sendSnapshot,Math.max(5,iv)*1000); }
+    var RTC={iceServers:[{urls:'stun:stun.l.google.com:19302'}]};
+    function wsUrl(){ var p=location.protocol==='https:'?'wss:':'ws:'; return p+'//'+location.host+'/ws/proctor/'+attemptId+'/camera'; }
+    function newPeer(){ if(pc){try{pc.close();}catch(e){}} pc=new RTCPeerConnection(RTC); if(camStream) camStream.getTracks().forEach(function(t){pc.addTrack(t,camStream);}); pc.onicecandidate=function(ev){ if(ev.candidate&&sigWs&&sigWs.readyState===1) sigWs.send(JSON.stringify({type:'ice',candidate:ev.candidate})); }; }
+    function connectSignaling(){ if(!attemptId) return; try{sigWs=new WebSocket(wsUrl());}catch(e){return reconnect();}
+      sigWs.onmessage=function(ev){ var m; try{m=JSON.parse(ev.data);}catch(e){return;}
+        if(m.type==='peer-joined'){ newPeer(); }
+        else if(m.type==='offer'){ if(!pc)newPeer(); pc.setRemoteDescription(new RTCSessionDescription(m.sdp)).then(function(){return pc.createAnswer();}).then(function(a){return pc.setLocalDescription(a).then(function(){return a;});}).then(function(a){ if(sigWs&&sigWs.readyState===1) sigWs.send(JSON.stringify({type:'answer',sdp:a})); }).catch(function(){}); }
+        else if(m.type==='ice'&&m.candidate&&pc){ pc.addIceCandidate(new RTCIceCandidate(m.candidate)).catch(function(){}); }
+        else if(m.type==='peer-left'){ if(pc){try{pc.close();}catch(e){}pc=null;} } };
+      sigWs.onclose=function(){ reconnect(); }; sigWs.onerror=function(){ try{sigWs.close();}catch(e){} }; }
+    function reconnect(){ if(wsRetry) return; wsRetry=setTimeout(function(){ wsRetry=null; if(attemptId&&camStream) connectSignaling(); },2500); }
+    function startLive(){ connectSignaling(); }
+    function stopCamera(){ if(snapTimer){clearInterval(snapTimer);snapTimer=null;} if(wsRetry){clearTimeout(wsRetry);wsRetry=null;} if(pc){try{pc.close();}catch(e){}pc=null;} if(sigWs){try{sigWs.close();}catch(e){}sigWs=null;} if(camStream){camStream.getTracks().forEach(function(t){t.stop();});camStream=null;} }
+
+    // ---- Navigator ----
+    var dots=[].slice.call(document.querySelectorAll('.nav-dot'));
+    function buildNav(){ dots.forEach(function(d){ d.addEventListener('click', function(){ renderQuestion(parseInt(d.getAttribute('data-index'),10)); }); }); }
+    function isAnswered(id){ var a=answers[id]; if(Array.isArray(a)) return a.length>0; return a!==undefined&&a!==null&&String(a).trim()!==''; }
+    function refreshNav(){ var n=0; Q.forEach(function(q,i){ var d=isAnswered(q.id); if(d)n++; dots[i].classList.toggle('answered',d&&i!==current); dots[i].classList.toggle('current',i===current); }); document.getElementById('answeredCount').textContent=n; document.getElementById('navBarFill').style.width=(Q.length?n/Q.length*100:0)+'%'; }
+
+    function renderQuestion(idx){
+      current=Math.max(0,Math.min(idx,Q.length-1)); var q=Q[current];
+      document.getElementById('qCounter').textContent='Question '+(current+1)+' of '+Q.length;
+      document.getElementById('qType').textContent=q.type;
+      document.getElementById('qMarks').textContent=q.points+' pt'+(q.points===1?'':'s');
+      document.getElementById('qText').textContent=q.question;
+      var body=document.getElementById('qBody'); body.innerHTML=''; var saved=answers[q.id];
+      if((q.type==='MCQ'||q.type==='True/False')&&q.options&&q.options.length){ body.appendChild(optList(q,'radio',saved)); }
+      else if(q.type==='True/False'){ body.appendChild(optList({id:q.id,options:[{label:'True',text:'True'},{label:'False',text:'False'}]},'radio',saved)); }
+      else if(q.type==='Multi-Select'&&q.options&&q.options.length){ body.appendChild(optList(q,'checkbox',saved)); }
+      else { var ta=document.createElement('textarea'); ta.className='text-answer'; ta.placeholder='Type your answer...'; ta.value=saved!=null?saved:''; ta.addEventListener('input',function(){answers[q.id]=ta.value;refreshNav();}); body.appendChild(ta); }
+      document.getElementById('prevBtn').disabled=(current===0);
+      document.getElementById('nextBtn').textContent=(current===Q.length-1)?'Save & Finish':'Save & Next →';
+      refreshNav(); window.scrollTo({top:0,behavior:'smooth'});
+    }
+    function optList(q,kind,saved){
+      var box=document.createElement('div'); box.className='opts';
+      var arr=Array.isArray(saved)?saved:(saved!=null?[saved]:[]);
+      q.options.forEach(function(o){ var lab=document.createElement('label'); lab.className='opt';
+        var inp=document.createElement('input'); inp.type=kind; inp.name='q_'+q.id; inp.value=o.label; if(arr.indexOf(o.label)!==-1){inp.checked=true;lab.classList.add('checked');}
+        inp.addEventListener('change',function(){ if(kind==='radio'){ box.querySelectorAll('.opt').forEach(function(x){x.classList.remove('checked');}); lab.classList.add('checked'); answers[q.id]=o.label; } else { lab.classList.toggle('checked',inp.checked); answers[q.id]=[].map.call(box.querySelectorAll('input:checked'),function(c){return c.value;}); } refreshNav(); });
+        var lb=document.createElement('span'); lb.className='opt-label'; lb.textContent=o.label; var tx=document.createElement('span'); tx.textContent=o.text;
+        lab.appendChild(inp); lab.appendChild(lb); lab.appendChild(tx); box.appendChild(lab); });
+      return box;
+    }
+
+    document.getElementById('prevBtn').addEventListener('click',function(){ if(current>0) renderQuestion(current-1); });
+    document.getElementById('nextBtn').addEventListener('click',function(){ if(current<Q.length-1) renderQuestion(current+1); else openConfirm(); });
+    document.getElementById('saveBtn').addEventListener('click',function(){ refreshNav(); var f=document.getElementById('saveFlash'); f.classList.add('show'); setTimeout(function(){f.classList.remove('show');},1400); });
+
+    function startTimer(){ if(!E.limitMin||E.limitMin<=0) return; var box=document.getElementById('timer'); box.classList.add('show'); var txt=document.getElementById('timerText'); var dl=startedAt+E.limitMin*60*1000;
+      var t=setInterval(function(){ var left=Math.max(0,Math.round((dl-Date.now())/1000)); var m=Math.floor(left/60),s=left%60; txt.textContent=m+':'+(s<10?'0':'')+s; if(left<=60)box.classList.add('warn'); if(left<=0){clearInterval(t);doSubmit();} },1000); }
+
+    var confirmModal=document.getElementById('confirmModal');
+    document.getElementById('submitBtn').addEventListener('click',openConfirm);
+    document.getElementById('cancelSubmit').addEventListener('click',function(){confirmModal.classList.remove('show');});
+    document.getElementById('confirmSubmit').addEventListener('click',function(){confirmModal.classList.remove('show');doSubmit();});
+    function openConfirm(){ refreshNav(); var n=0; Q.forEach(function(q){if(isAnswered(q.id))n++;}); document.getElementById('mAnswered').textContent=n; document.getElementById('mUnanswered').textContent=Q.length-n; confirmModal.classList.add('show'); }
+
+    function doSubmit(){ if(submitted)return; submitted=true; document.getElementById('submitBtn').disabled=true; stopCamera();
+      fetch('/api/exam/'+encodeURIComponent(E.token)+'/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({answers:answers,attempt_id:attemptId,duration_sec:Math.round((Date.now()-startedAt)/1000)})})
+      .then(function(r){return r.json().then(function(d){return {ok:r.ok,d:d};});})
+      .then(function(res){ if(res.ok&&res.d.result_url) window.location.href=res.d.result_url; else { submitted=false; alert(res.d.error||'Could not submit.'); document.getElementById('submitBtn').disabled=false; } })
+      .catch(function(){ submitted=false; alert('Network error. Please try again.'); document.getElementById('submitBtn').disabled=false; });
+    }
+  })();
+  </script>
+</body>
+</html>

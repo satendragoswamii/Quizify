@@ -1,0 +1,58 @@
+{% extends "admin/base.html" %}
+{% block title %}Exams &amp; Results{% endblock %}
+
+{% block content %}
+<div class="toolbar">
+  <span class="hint">{{ exams|length }} exam{{ '' if exams|length == 1 else 's' }}</span>
+  <div class="spacer"></div>
+  <a class="btn small" href="{{ url_for('admin.exam_from_bank') }}">+ From question bank</a>
+  <a class="btn small" href="{{ url_for('index') }}">+ From a new quiz</a>
+</div>
+
+<div class="card">
+  <div class="card-body tight">
+    {% if exams %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Exam</th>
+            <th class="num">Questions</th>
+            <th class="num">Attempts</th>
+            <th class="num">Avg score</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for e in exams %}
+          <tr>
+            <td>
+              <strong>{{ e.title }}</strong>
+              <div class="muted mono">
+                {% if e.subject %}{{ e.subject }}{% endif %}{% if e.topic %} &middot; {{ e.topic }}{% endif %}
+              </div>
+            </td>
+            <td class="num">{{ e.question_count }}</td>
+            <td class="num">{{ e.attempts }}</td>
+            <td class="num">{{ e.avg_percent if e.avg_percent is not none else '—' }}{% if e.avg_percent is not none %}%{% endif %}</td>
+            <td>
+              {% if e.is_open %}<span class="badge ok">open</span>
+              {% else %}<span class="badge mute">closed</span>{% endif %}
+            </td>
+            <td class="muted">{{ e.created_at }}</td>
+            <td><a class="btn small" href="{{ url_for('admin.exam_detail', exam_id=e.id) }}">View results</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="empty">
+        No exams yet. Convert a quiz, then click <strong>Assign as Exam</strong> in the preview to create one.
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

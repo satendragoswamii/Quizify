@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Admin{% endblock %} &middot; {{ app_name }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+</head>
+<body>
+{% if current_user %}
+<div class="admin-shell">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <span class="dot">Q</span>
+      <span>
+        {{ app_name }}
+        <small>Admin</small>
+      </span>
+    </div>
+
+    <nav class="nav-group">
+      <div class="nav-label">Overview</div>
+      <a class="nav-item {% if request.endpoint == 'admin.dashboard' %}active{% endif %}"
+         href="{{ url_for('admin.dashboard') }}">Dashboard</a>
+      {% if has_role('editor') %}
+      <a class="nav-item {% if request.endpoint and request.endpoint.startswith('admin.jobs') %}active{% endif %}"
+         href="{{ url_for('admin.jobs') }}">Conversions</a>
+      <a class="nav-item {% if request.endpoint and request.endpoint.startswith('admin.questions') %}active{% endif %}"
+         href="{{ url_for('admin.questions') }}">Question Bank</a>
+      {% endif %}
+      <a class="nav-item {% if request.endpoint and request.endpoint.startswith('admin.exam') %}active{% endif %}"
+         href="{{ url_for('admin.exams_list') }}">Exams &amp; Results</a>
+      {% if has_role('editor') %}
+      <a class="nav-item {% if request.endpoint and request.endpoint.startswith('admin.student') %}active{% endif %}"
+         href="{{ url_for('admin.students') }}">Students</a>
+      <a class="nav-item {% if request.endpoint and request.endpoint.startswith('admin.corrections') %}active{% endif %}"
+         href="{{ url_for('admin.corrections') }}">Corrections</a>
+      {% endif %}
+    </nav>
+
+    {% if has_role('admin') %}
+    <nav class="nav-group">
+      <div class="nav-label">Manage</div>
+      <a class="nav-item {% if request.endpoint and request.endpoint.startswith('admin.user') %}active{% endif %}"
+         href="{{ url_for('admin.users') }}">Users</a>
+      <a class="nav-item {% if request.endpoint == 'admin.providers_view' %}active{% endif %}"
+         href="{{ url_for('admin.providers_view') }}">AI Providers</a>
+      <a class="nav-item {% if request.endpoint == 'admin.settings_view' %}active{% endif %}"
+         href="{{ url_for('admin.settings_view') }}">Settings</a>
+      <a class="nav-item {% if request.endpoint == 'admin.audit' %}active{% endif %}"
+         href="{{ url_for('admin.audit') }}">Audit Log</a>
+    </nav>
+    {% endif %}
+
+    <nav class="nav-group">
+      <div class="nav-label">App</div>
+      <a class="nav-item" href="{{ url_for('index') }}">Open Converter</a>
+      <a class="nav-item {% if request.endpoint == 'admin.profile' %}active{% endif %}"
+         href="{{ url_for('admin.profile') }}">My Profile</a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <strong>{{ current_user.name or current_user.email }}</strong>
+        <span>{{ current_user.role }}</span>
+      </div>
+      <form method="post" action="{{ url_for('admin.logout_view') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn small" style="width:100%;justify-content:center">Sign out</button>
+      </form>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <h1>{% block heading %}{{ self.title() }}{% endblock %}</h1>
+      <div class="spacer"></div>
+      {% block topbar %}{% endblock %}
+      <button class="theme-btn" id="themeBtn" type="button" aria-label="Toggle dark mode">◐</button>
+    </header>
+
+    <main class="content">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+{% else %}
+  {% block anonymous %}{% endblock %}
+{% endif %}
+
+<script>
+  (function () {
+    var stored = localStorage.getItem('quizify-theme');
+    var dark = stored ? stored === 'dark'
+                      : window.matchMedia('(prefers-color-scheme: dark)').matches;
+    function apply(isDark) {
+      document.body.classList.toggle('dark-mode', isDark);
+      localStorage.setItem('quizify-theme', isDark ? 'dark' : 'light');
+    }
+    apply(dark);
+    var btn = document.getElementById('themeBtn');
+    if (btn) {
+      btn.addEventListener('click', function () {
+        apply(!document.body.classList.contains('dark-mode'));
+      });
+    }
+    // Any control marked data-confirm asks before submitting.
+    document.querySelectorAll('[data-confirm]').forEach(function (el) {
+      el.addEventListener('click', function (e) {
+        if (!window.confirm(el.getAttribute('data-confirm'))) e.preventDefault();
+      });
+    });
+  })();
+</script>
+</body>
+</html>

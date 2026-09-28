@@ -1,0 +1,283 @@
+{% extends "admin/base.html" %}
+{% block title %}{% if is_new %}Add user{% else %}{{ user.email }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="split">
+  <div>
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="save">
+      <div class="card">
+        <div class="card-head">
+          <h2>{% if is_new %}New user{% else %}Account details{% endif %}</h2>
+        </div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="field">
+              <label for="name">Name</label>
+              <input type="text" id="name" name="name" value="{{ user.name or '' }}">
+            </div>
+            <div class="field">
+              <label for="email">Email</label>
+              <input type="email" id="email" name="email" value="{{ user.email or '' }}" required>
+            </div>
+            <div class="field">
+              <label for="role">Role</label>
+              <select id="role" name="role">
+                {% for r in roles %}
+                  <option value="{{ r }}" {% if user.role == r %}selected{% endif %}>{{ r }}</option>
+                {% endfor %}
+              </select>
+              <span class="hint">admin: everything &middot; editor: conversions &middot; user: own profile</span>
+            </div>
+            <div class="field">
+              <label for="daily_quota">Daily conversion limit</label>
+              <input type="number" id="daily_quota" name="daily_quota" min="0"
+                     value="{{ user.daily_quota or 0 }}">
+              <span class="hint">0 means unlimited.</span>
+            </div>
+            {% if is_new %}
+            <div class="field">
+              <label for="password">Password</label>
+              <input type="password" id="password" name="password" required autocomplete="new-password">
+            </div>
+            <div class="field">
+              <label for="confirm">Confirm password</label>
+              <input type="password" id="confirm" name="confirm" required autocomplete="new-password">
+            </div>
+            {% endif %}
+            <div class="field full">
+              <label for="notes">Notes</label>
+              <textarea id="notes" name="notes">{{ user.notes or '' }}</textarea>
+            </div>
+            <div class="field full check">
+              <input type="checkbox" id="is_active" name="is_active" value="1"
+                     {% if user.is_active %}checked{% endif %}>
+              <label for="is_active">Account is active</label>
+            </div>
+          </div>
+          <div class="actions">
+            <button type="submit" class="btn primary">{% if is_new %}Create user{% else %}Save changes{% endif %}</button>
+            <a class="btn" href="{{ url_for('admin.users') }}">Cancel</a>
+          </div>
+        </div>
+      </div>
+    </form>
+
+    {% if not is_new %}
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="features">
+      <div class="card">
+        <div class="card-head">
+          <h2>Features &amp; limits</h2>
+          <p>
+            What this account may do. Every field starts on
+            <strong>Use global setting</strong>, so it follows the Settings page until
+            you choose otherwise &mdash; only the ones you change are stored against
+            the user.
+          </p>
+        </div>
+        <div class="card-body">
+          {% for group, items in feature_groups %}
+            <h3 class="subhead">{{ group }}</h3>
+            <div class="form-grid">
+              {% for f in items %}
+                {% set override = overrides.get(f.key, '') %}
+                <div class="field {% if f.kind == 'text' %}full{% endif %}">
+                  <label for="{{ f.key }}">
+                    {{ f.label }}
+                    {% if override != '' %}<span class="badge warn">override</span>{% endif %}
+                  </label>
+
+                  {% if f.kind == 'bool' %}
+                    <select id="{{ f.key }}" name="{{ f.key }}">
+                      <option value="">Use global setting ({{ 'on' if global_value(f.key) in ('true','1','yes','on','enabled') else 'off' }})</option>
+                      <option value="true"  {% if override == 'true'  %}selected{% endif %}>Allowed</option>
+                      <option value="false" {% if override == 'false' %}selected{% endif %}>Blocked</option>
+                    </select>
+                  {% elif f.kind == 'choice' %}
+                    <select id="{{ f.key }}" name="{{ f.key }}">
+                      <option value="">Use global setting ({{ global_value(f.key) }})</option>
+                      {% for value, text in f.choices %}
+                        <option value="{{ value }}" {% if override == value %}selected{% endif %}>{{ text }}</option>
+                      {% endfor %}
+                    </select>
+                  {% elif f.kind == 'int' %}
+                    <input type="number" id="{{ f.key }}" name="{{ f.key }}"
+                           value="{{ override }}"
+                           {% if f.minimum is not none %}min="{{ f.minimum }}"{% endif %}
+                           {% if f.maximum is not none %}max="{{ f.maximum }}"{% endif %}
+                           placeholder="Global: {{ global_value(f.key) or '—' }}">
+                  {% else %}
+                    <input type="text" id="{{ f.key }}" name="{{ f.key }}"
+                           value="{{ override }}"
+                           placeholder="Global: {{ global_value(f.key) or 'no restriction' }}">
+                  {% endif %}
+
+                  {% if f.help %}<span class="hint">{{ f.help }}</span>{% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          {% endfor %}
+
+          <div class="actions">
+            <button type="submit" class="btn primary">Save features</button>
+            <span class="hint">
+              {% if overrides %}
+                {{ overrides|length }} override{{ '' if overrides|length == 1 else 's' }} set.
+              {% else %}
+                Following every global setting.
+              {% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+    </form>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>In effect now</h2>
+        <p>What this account can currently do, after applying the overrides above.</p>
+      </div>
+      <div class="card-body">
+        {% set e = effective.describe() %}
+        <div class="form-grid">
+          <div class="field">
+            <span class="hint">AI assist</span>
+            <span class="badge {{ 'ok' if e.ai else 'err' }}">{{ 'allowed' if e.ai else 'blocked' }}</span>
+          </div>
+          <div class="field">
+            <span class="hint">Question bank</span>
+            <span class="badge {{ 'ok' if e.question_bank else 'err' }}">{{ 'on' if e.question_bank else 'off' }}</span>
+          </div>
+          <div class="field">
+            <span class="hint">Save corrections</span>
+            <span class="badge {{ 'ok' if e.learning else 'err' }}">{{ 'on' if e.learning else 'off' }}</span>
+          </div>
+          <div class="field">
+            <span class="hint">Edit in preview</span>
+            <span class="badge {{ 'ok' if e.editing else 'err' }}">{{ 'on' if e.editing else 'off' }}</span>
+          </div>
+          <div class="field">
+            <span class="hint">Output formats</span>
+            <span class="mono">{{ e.formats | join(', ') }}</span>
+          </div>
+          <div class="field">
+            <span class="hint">Upload limit</span>
+            <span class="mono">{{ e.max_upload_mb }} MB</span>
+          </div>
+          <div class="field">
+            <span class="hint">Daily conversions</span>
+            <span class="mono">{{ e.daily_quota or 'unlimited' }}</span>
+          </div>
+          <div class="field">
+            <span class="hint">Option columns</span>
+            <span class="mono">{{ e.max_options }}</span>
+          </div>
+        </div>
+        {% if overrides %}
+        <form method="post" class="actions"
+              onsubmit="return confirm('Clear all per-user overrides for this account?');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="features_reset">
+          <button type="submit" class="btn">Reset to global settings</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Reset password</h2></div>
+      <div class="card-body">
+        <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="password">
+          <div class="form-grid">
+            <div class="field">
+              <label for="np">New password</label>
+              <input type="password" id="np" name="password" required autocomplete="new-password">
+            </div>
+            <div class="field">
+              <label for="nc">Confirm</label>
+              <input type="password" id="nc" name="confirm" required autocomplete="new-password">
+            </div>
+          </div>
+          <div class="actions">
+            <button type="submit" class="btn">Set password</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="card danger-zone">
+      <div class="card-head">
+        <h2>Danger zone</h2>
+        <p>Deleting a user is permanent. Their conversion history is kept but unlinked.</p>
+      </div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('admin.user_delete', user_id=user.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn danger"
+                  data-confirm="Permanently delete {{ user.email }}?">Delete this user</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if not is_new %}
+  <div>
+    <div class="card">
+      <div class="card-head"><h2>At a glance</h2></div>
+      <div class="card-body">
+        <dl class="kv">
+          <dt>Created</dt><dd>{{ user.created_at }}</dd>
+          <dt>Last sign-in</dt><dd>{{ user.last_login_at or 'never' }}</dd>
+          <dt>Today</dt><dd>{{ usage_today }} conversion(s)</dd>
+          <dt>Failed logins</dt><dd>{{ user.failed_logins }}</dd>
+          <dt>Status</dt>
+          <dd>
+            {% if is_locked %}<span class="badge err">locked</span>
+            {% elif user.is_active %}<span class="badge ok">active</span>
+            {% else %}<span class="badge mute">disabled</span>{% endif %}
+          </dd>
+        </dl>
+        {% if is_locked %}
+        <form method="post" style="margin-top:14px">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="unlock">
+          <button type="submit" class="btn small">Unlock account</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Recent conversions</h2></div>
+      <div class="card-body tight">
+        {% if recent_jobs %}
+        <div class="table-wrap">
+          <table>
+            <tbody>
+              {% for job in recent_jobs %}
+              <tr>
+                <td>
+                  {{ job.source_name or 'pasted text' }}
+                  <div class="muted">{{ job.created_at }}</div>
+                </td>
+                <td class="num">{{ job.questions }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+          <div class="empty">No conversions yet.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

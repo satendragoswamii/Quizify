@@ -1,0 +1,2161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ app_name }} - Convert Quiz Files to Excel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='walkthrough.css') }}">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Left Brand Panel -->
+    <aside class="brand-panel">
+      <div class="deco-grid"></div>
+      <div class="deco-orb deco-orb--1"></div>
+      <div class="deco-orb deco-orb--2"></div>
+
+      <div class="brand-content">
+        <div class="brand-logo">
+          <div class="brand-logo-icon">
+            <svg viewBox="0 0 24 24">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+              <line x1="8" y1="7" x2="16" y2="7"/>
+              <line x1="8" y1="11" x2="14" y2="11"/>
+              <line x1="8" y1="15" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <span class="brand-logo-text">{{ app_name }}</span>
+        </div>
+
+        <h1 class="brand-headline">
+          Quiz to Excel <span>in Seconds</span>
+        </h1>
+
+        <p class="brand-subtitle">
+          Upload a quiz file or paste questions &mdash; get a clean Excel/CSV file with questions, options, and answers. This is an AI-based tool that verifies output for better accuracy. Quizify delivers <strong>99.99% accuracy</strong>, but as with any AI, we recommend reviewing the results.
+        </p>
+
+        <!-- How It Works -->
+        <div class="docs-section">
+          <button class="docs-toggle" type="button" data-target="howItWorksContent">
+            <svg viewBox="0 0 24 24" class="docs-chevron">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+            <span>How It Works</span>
+          </button>
+          <div class="docs-content open" id="howItWorksContent">
+            <div class="how-it-works-steps">
+              <div class="how-step">
+                <div class="how-step-num">1</div>
+                <div class="how-step-content">
+                  <div class="how-step-title">Upload or Paste</div>
+                  <div class="how-step-desc">Choose a <strong>.docx, .pdf, .txt, .csv, .xlsx</strong> or other supported file, or paste quiz text directly.</div>
+                </div>
+              </div>
+              <div class="how-step">
+                <div class="how-step-num">2</div>
+                <div class="how-step-content">
+                  <div class="how-step-title">Configure Output</div>
+                  <div class="how-step-desc">Enter subject, topic, and choose <strong>Excel</strong> or <strong>CSV</strong> format.</div>
+                </div>
+              </div>
+              <div class="how-step">
+                <div class="how-step-num">3</div>
+                <div class="how-step-content">
+                  <div class="how-step-title">Preview &amp; Download</div>
+                  <div class="how-step-desc">Click <strong>"Process &amp; Preview"</strong> to see every question that was found, then download once it looks right.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Key Features -->
+        <div class="docs-section">
+          <button class="docs-toggle" type="button" data-target="featuresContent">
+            <svg viewBox="0 0 24 24" class="docs-chevron">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+            <span>Key Features</span>
+          </button>
+          <div class="docs-content" id="featuresContent">
+            <div class="feature-list">
+              <div class="feature-item">
+                <svg viewBox="0 0 24 24" class="feature-icon"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Drag-and-drop upload (.docx, .pdf, .csv, .xlsx, and more)</span>
+              </div>
+              <div class="feature-item">
+                <svg viewBox="0 0 24 24" class="feature-icon"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Paste quiz text from anywhere</span>
+              </div>
+              <div class="feature-item">
+                <svg viewBox="0 0 24 24" class="feature-icon"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Auto-detects bold answers in DOCX</span>
+              </div>
+              <div class="feature-item">
+                <svg viewBox="0 0 24 24" class="feature-icon"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Exports to Excel (.xlsx) or CSV</span>
+              </div>
+              <div class="feature-item">
+                <svg viewBox="0 0 24 24" class="feature-icon"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Supports 15+ quiz formats</span>
+              </div>
+              <div class="feature-item">
+                <svg viewBox="0 0 24 24" class="feature-icon"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Bold, answer keys, answer grids</span>
+              </div>
+              <div class="feature-item">
+                <svg viewBox="0 0 24 24" class="feature-icon"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>True/False auto-detection</span>
+              </div>
+              <div class="feature-item">
+                <svg viewBox="0 0 24 24" class="feature-icon"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Dark mode support</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Supported Formats -->
+        <div class="docs-section">
+          <button class="docs-toggle" type="button" data-target="formatsContent">
+            <svg viewBox="0 0 24 24" class="docs-chevron">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+            <span>Supported Formats</span>
+          </button>
+          <div class="docs-content" id="formatsContent">
+            <div class="docs-group">
+              <div class="docs-group-title">Question Formats</div>
+              <div class="docs-examples">
+                <code>Q1. What is AI?</code>
+                <code>1. What is AI?</code>
+                <code>(1) What is AI?</code>
+                <code>[1] What is AI?</code>
+                <code>I. What is AI?</code>
+                <code>Que. 1 What is AI?</code>
+                <code>Question No. 1</code>
+                <code>Q.No.1 What is AI?</code>
+              </div>
+            </div>
+            <div class="docs-group">
+              <div class="docs-group-title">Option Formats</div>
+              <div class="docs-examples">
+                <code>A. Option text</code>
+                <code>(A) Option text</code>
+                <code>[B] Option text</code>
+                <code>A - Option text</code>
+                <code>Option A: text</code>
+                <code>Choice B: text</code>
+              </div>
+            </div>
+            <div class="docs-group">
+              <div class="docs-group-title">Answer Formats</div>
+              <div class="docs-examples">
+                <code>Answer: B</code>
+                <code>Correct Option: C</code>
+                <code>Answer = A</code>
+                <code>Answer: True / False</code>
+                <code>Ans: A, C (multiple)</code>
+                <code>1-B, 2:D (grid)</code>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="docs-section">
+          <button class="docs-toggle" type="button" data-target="troubleshootContent">
+            <svg viewBox="0 0 24 24" class="docs-chevron">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+            <span>Troubleshooting</span>
+          </button>
+          <div class="docs-content" id="troubleshootContent">
+            <div class="troubleshoot-item">
+              <div class="troubleshoot-label">&ldquo;No questions found&rdquo;</div>
+              <div class="troubleshoot-desc">Ensure each question starts with a number (1., Q1., (1), etc.) followed by text. Leave a blank line between questions.</div>
+            </div>
+            <div class="troubleshoot-item">
+              <div class="troubleshoot-label">Wrong answers extracted</div>
+              <div class="troubleshoot-desc">Use a clear answer line after options (e.g. <code>Answer: B</code>). Bold the correct option in DOCX for auto-detection.</div>
+            </div>
+            <div class="troubleshoot-item">
+              <div class="troubleshoot-label">File won&rsquo;t upload</div>
+              <div class="troubleshoot-desc">Check the file type is supported (.docx, .pdf, .txt, .md, .rtf, .html, .csv, .tsv, .xlsx, .json). Scanned PDFs contain no text &mdash; try copying the text and pasting it instead.</div>
+            </div>
+            <div class="troubleshoot-item">
+              <div class="troubleshoot-label">Export is empty or missing</div>
+              <div class="troubleshoot-desc">Make sure your file or pasted text actually contains questions. If the issue persists, try the other input method.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- About Section -->
+        <div class="docs-section">
+          <button class="docs-toggle" type="button" data-target="aboutContent">
+            <svg viewBox="0 0 24 24" class="docs-chevron">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+            <span>About Quizify</span>
+          </button>
+          <div class="docs-content" id="aboutContent">
+            <div class="about-text">
+              Quizify converts unstructured quiz content from DOCX files or plain text into structured Excel/CSV files.
+            </div>
+            <div class="about-stats">
+              <div class="about-stat">
+                <span class="about-stat-value">15+</span>
+                <span class="about-stat-label">Formats</span>
+              </div>
+              <div class="about-stat">
+                <span class="about-stat-value">100%</span>
+                <span class="about-stat-label">Free</span>
+              </div>
+              <div class="about-stat">
+                <span class="about-stat-value">DOCX</span>
+                <span class="about-stat-label">Input</span>
+              </div>
+            </div>
+            <div class="about-subtle">
+            Created by <strong><a class="about-link" href="https://www.instagram.com/satendragoswamii/" target="_blank" rel="noopener">Satendra Goswami</a></strong>
+          </div>
+        </div>
+        </div>
+
+        <div class="brand-footer">
+          <div class="brand-illustration">
+            <div class="illustration-card">
+              <div class="illustration-row">
+                <div class="illustration-doc">
+                  <div class="illustration-doc-icon">
+                    <svg viewBox="0 0 24 24">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                      <polyline points="14 2 14 8 20 8"/>
+                      <line x1="16" y1="13" x2="8" y2="13"/>
+                      <line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                  </div>
+                  <span class="illustration-doc-label">Quiz</span>
+                </div>
+                <div class="illustration-arrow">
+                  <svg viewBox="0 0 24 24">
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                    <polyline points="12 5 19 12 12 19"/>
+                  </svg>
+                </div>
+                <div class="illustration-excel">
+                  <div class="illustration-excel-icon">
+                    <svg viewBox="0 0 24 24">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                      <line x1="3" y1="9" x2="21" y2="9"/>
+                      <line x1="9" y1="21" x2="9" y2="9"/>
+                    </svg>
+                  </div>
+                  <span class="illustration-excel-label">Excel</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# Account and appearance controls live at the foot of the panel rather than in
+         the page header: they are about the session, not about the quiz being built,
+         so they stay out of the way of the three numbered steps on the right.
+
+         This sits outside .brand-content so it can pin itself to the bottom of the
+         panel and stay there while the docs sections above it scroll.
+
+         Logout is a POST because the session is CSRF-protected — a plain link would
+         be forgeable. #}
+      <div class="brand-account">
+        {% if current_user %}
+          <div class="brand-account-who">
+            <span class="brand-account-dot" aria-hidden="true"></span>
+            <span class="account-name" title="{{ current_user.email }}">
+              {{ current_user.name or current_user.email }}
+            </span>
+          </div>
+        {% endif %}
+
+        <div class="brand-account-row">
+          {% if current_user %}
+            <form method="post" action="{{ url_for('admin.logout_view') }}" class="brand-account-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="next" value="{{ url_for('index') }}">
+              <button type="submit" class="account-btn">Logout</button>
+            </form>
+            <a href="{{ url_for('admin.dashboard') }}" class="theme-toggle" title="Admin panel"
+               aria-label="Admin panel" style="text-decoration:none;font-size:15px">&#9881;</a>
+          {% else %}
+            <a class="account-btn account-btn--primary brand-account-login"
+               href="{{ url_for('admin.login', next=url_for('index')) }}">Login</a>
+          {% endif %}
+
+          {# The tour sits beside the theme toggle because both are "about the page"
+             rather than about the quiz. It carries a dot until it has been run once. #}
+          <button class="theme-toggle tour-btn" id="walkthroughBtn" type="button"
+                  title="Show me around" aria-label="Show me around">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </button>
+          <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+            <svg class="sun-icon" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="5"/>
+              <line x1="12" y1="1" x2="12" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/>
+              <line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+            <svg class="moon-icon" viewBox="0 0 24 24" style="display:none">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Right Main Panel -->
+    <main class="main-panel">
+      <div class="particles" aria-hidden="true">
+        <span class="particle" style="--x:15%;--y:20%;--s:5px;--d:0s;--dr:8s"></span>
+        <span class="particle" style="--x:75%;--y:35%;--s:4px;--d:1s;--dr:10s"></span>
+        <span class="particle" style="--x:45%;--y:60%;--s:6px;--d:2s;--dr:7s"></span>
+        <span class="particle" style="--x:85%;--y:15%;--s:3px;--d:0.5s;--dr:9s"></span>
+        <span class="particle" style="--x:30%;--y:80%;--s:5px;--d:1.5s;--dr:11s"></span>
+        <span class="particle" style="--x:60%;--y:45%;--s:4px;--d:2.5s;--dr:8s"></span>
+        <span class="particle" style="--x:10%;--y:70%;--s:5px;--d:3s;--dr:9s"></span>
+        <span class="particle" style="--x:90%;--y:55%;--s:3px;--d:3.5s;--dr:10s"></span>
+        <span class="particle" style="--x:50%;--y:10%;--s:6px;--d:4s;--dr:7s"></span>
+        <span class="particle" style="--x:20%;--y:90%;--s:4px;--d:4.5s;--dr:11s"></span>
+        <span class="particle" style="--x:70%;--y:75%;--s:5px;--d:5s;--dr:8s"></span>
+        <span class="particle" style="--x:40%;--y:30%;--s:4px;--d:5.5s;--dr:10s"></span>
+      </div>
+      <div class="main-header">
+        <div class="main-header-center">
+          <div class="main-header-icon">
+            <svg viewBox="0 0 24 24">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+              <line x1="8" y1="7" x2="16" y2="7"/>
+              <line x1="8" y1="11" x2="14" y2="11"/>
+              <line x1="8" y1="15" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <h2 class="main-header-welcome">Welcome to {{ app_name }}</h2>
+        </div>
+      </div>
+
+      {% if error %}
+      <div class="error-message">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <div class="error-message-text">{{ error }}</div>
+      </div>
+      {% endif %}
+
+      <form class="quiz-form" method="post" enctype="multipart/form-data" id="quizForm">
+        <!-- Step 1: Input Method -->
+        <div class="step-section">
+          <div class="step-header">
+            <div class="step-number">1</div>
+            <h3>Choose Input Method</h3>
+          </div>
+
+          <div class="method-cards">
+            <div class="method-card" data-method="upload" id="uploadCard">
+              <div class="method-card-badge">Selected</div>
+              <div class="method-card-icon">
+                <svg viewBox="0 0 24 24">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+              </div>
+              <div class="method-card-title">Upload Quiz File</div>
+              <div class="method-card-desc">Upload .docx, .pdf, .txt, .csv, .xlsx, .json and more</div>
+            </div>
+            <div class="method-card active" data-method="paste" id="pasteCard">
+              <div class="method-card-badge">Selected</div>
+              <div class="method-card-icon">
+                <svg viewBox="0 0 24 24">
+                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+                </svg>
+              </div>
+              <div class="method-card-title">Paste Quiz Text</div>
+              <div class="method-card-desc">Paste questions and answers directly</div>
+            </div>
+          </div>
+
+          <!-- Upload Input Area -->
+          <div class="input-area visible" id="uploadArea">
+            <div class="drop-zone" id="dropZone">
+              <div class="drop-zone-icon">
+                <svg viewBox="0 0 24 24">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+              </div>
+              <div class="drop-zone-text">Upload Quiz File</div>
+              <div class="drop-zone-hint">Drag and drop your file here or click to browse</div>
+              <div class="drop-zone-file" id="dropZoneFile">
+                <svg viewBox="0 0 24 24">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                <span id="fileNameDisplay"></span>
+                <button type="button" class="drop-zone-remove" id="fileRemove">Remove</button>
+              </div>
+              <input type="file" name="file" accept=".docx,.pdf,.txt,.md,.rtf,.html,.htm,.csv,.tsv,.xlsx,.xls,.json" id="fileInput" style="display:none">
+            </div>
+          </div>
+
+          <!-- Paste Input Area -->
+          <div class="input-area" id="pasteArea">
+            <div class="paste-area">
+              <textarea name="quiz_text" id="quizText" placeholder="Paste your quiz questions and answers here...
+
+Example:
+Q1. Which of the following is a programming language?
+A. HTML
+B. Python
+C. CSS
+D. XML
+Answer: B
+
+Q2. What does API stand for?
+A. Application Programming Interface
+B. Applied Program Integration
+C. Automatic Protocol Interface
+D. Advanced Programming Instruction
+Answer: A"></textarea>
+              <div class="paste-area-hint">
+                <svg viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="16" x2="12" y2="12"/>
+                  <line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+                Handles Q1./1./(1)/Q.No.1 numbering with A./a)/(i)/1. options, plus True/False, fill-in-the-blank, matching, assertion-reason and short-answer questions
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Configure Output -->
+        <div class="step-section">
+          {# Subject and Topic are optional, so the toggle sits inline with the section
+             title to save vertical space; clicking the tag icon reveals both fields
+             just below, above the main options grid. #}
+          <div class="step-header step-header--with-action">
+            <div class="step-header-title">
+              <div class="step-number">2</div>
+              <h3>Configure Output</h3>
+            </div>
+            <button type="button" class="optional-meta-toggle" id="optionalMetaToggle"
+                    aria-expanded="false" aria-controls="optionalMetaFields"
+                    title="Add subject &amp; topic (optional)">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                <line x1="7" y1="7" x2="7.01" y2="7"/>
+              </svg>
+              <span>Add subject &amp; topic</span>
+            </button>
+          </div>
+
+          <div class="optional-meta-fields" id="optionalMetaFields" hidden>
+            <div class="form-group">
+              <label class="form-label" for="subject">Subject <span class="form-label-optional">(optional)</span></label>
+              <input class="form-input" type="text" name="subject" id="subject" placeholder="e.g. Computer Science">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="topic">Topic <span class="form-label-optional">(optional)</span></label>
+              <input class="form-input" type="text" name="topic" id="topic" placeholder="e.g. Python Basics">
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label" for="format">Output Format</label>
+              {# Only the formats this account may produce. The server enforces the
+                 same list, so trimming here is convenience, not the control. #}
+              <select class="form-select" name="format" id="format" required>
+                {% for value, text in [('excel', 'Excel (.xlsx)'), ('csv', 'CSV (.csv)'), ('json', 'JSON (.json)')] %}
+                  {% if value in allowed.formats %}
+                    <option value="{{ value }}" {% if defaults.format == value %}selected{% endif %}>{{ text }}</option>
+                  {% endif %}
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="max_options">Max Answers in Output</label>
+              <input class="form-input" type="number" name="max_options" id="max_options" min="2" max="26" value="{{ defaults.max_options }}" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="answer_style">Answer Column Style</label>
+              {# How the Answer column labels a correct option. "Letter" keeps A/B/C;
+                 "Answer" / "Choice" write the option's position, e.g. A -> Answer1 or Choice 1. #}
+              <select class="form-select" name="answer_style" id="answer_style">
+                <option value="label" selected>Letter (A, B, C)</option>
+                <option value="answer">Answer (Answer1, Answer2)</option>
+                <option value="choice">Choice (Choice 1, Choice 2)</option>
+              </select>
+            </div>
+            {# An account without AI is not shown a choice it cannot make. #}
+            {% if allowed.ai %}
+            <div class="form-group">
+              <label class="form-label" for="ai_mode">AI Assist</label>
+              <select class="form-select" name="ai_mode" id="ai_mode">
+                <option value="auto" {% if defaults.ai_mode == 'auto' %}selected{% endif %}>Auto &mdash; only when needed</option>
+                <option value="off" {% if defaults.ai_mode == 'off' %}selected{% endif %}>Off &mdash; rules only</option>
+                <option value="always" {% if defaults.ai_mode == 'always' %}selected{% endif %}>Always &mdash; every document</option>
+              </select>
+            </div>
+            {% endif %}
+            <div class="form-group" id="providerGroup" style="display:none">
+              <label class="form-label" for="provider">AI Provider</label>
+              <select class="form-select" name="provider" id="provider">
+                <option value="">Automatic (best available)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Info Banner -->
+        <div class="info-banner" id="infoBanner">
+          <div class="info-banner-icon">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="16" x2="12" y2="12"/>
+              <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+          </div>
+          <div class="info-banner-text" id="infoBannerText">
+            Select an input method above to begin processing.
+          </div>
+        </div>
+
+        <!-- CTA Button -->
+        <button type="submit" class="cta-button" id="submitBtn">
+          <span class="btn-icon">
+            <svg viewBox="0 0 24 24">
+              <polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+          </span>
+          <span class="btn-text">Process &amp; Preview</span>
+          <div class="spinner"></div>
+        </button>
+      </form>
+
+      <!-- ============================================
+           PREVIEW — populated from /api/parse, exported via /api/export
+           so the document is never parsed twice.
+           ============================================ -->
+      <section class="preview" id="previewPanel" hidden>
+        <div class="preview-head">
+          <div>
+            <h3 class="preview-title">Review before download</h3>
+            <div class="preview-source" id="previewSource"></div>
+          </div>
+          <button type="button" class="preview-back" id="previewBack">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+            Back to input
+          </button>
+        </div>
+
+        <div class="preview-stats" id="previewStats"></div>
+        <div class="preview-notes" id="previewNotes"></div>
+
+        <div class="preview-toolbar">
+          <div class="preview-search">
+            <svg viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="previewSearch" placeholder="Filter questions..." autocomplete="off">
+          </div>
+          <label class="preview-check">
+            <input type="checkbox" id="previewReviewOnly">
+            <span>Needs review only</span>
+          </label>
+          <label class="preview-check" id="previewRepeatsRow" hidden>
+            <input type="checkbox" id="previewRepeatsOnly">
+            <span>Used before only</span>
+          </label>
+        </div>
+
+        <div class="preview-list" id="previewList"></div>
+        <button type="button" class="preview-showall" id="previewShowAll" hidden></button>
+
+        <!-- Opt-in, and only offered once there is actually a correction to store. -->
+        <label class="preview-learn" id="previewLearnRow" hidden>
+          <input type="checkbox" id="previewLearn">
+          <span>
+            <b>Remember my corrections</b>
+            <span class="preview-learn-hint" id="previewLearnHint"></span>
+          </span>
+        </label>
+
+        <div class="preview-actions">
+          <div class="form-group">
+            <label class="form-label" for="previewFormat">Download as</label>
+            <select class="form-select" id="previewFormat">
+              {% for value, text in [('excel', 'Excel (.xlsx)'), ('csv', 'CSV (.csv)'), ('json', 'JSON (.json)')] %}
+                {% if value in allowed.formats %}
+                  <option value="{{ value }}" {% if defaults.format == value %}selected{% endif %}>{{ text }}</option>
+                {% endif %}
+              {% endfor %}
+            </select>
+          </div>
+          <button type="button" class="cta-button" id="downloadBtn">
+            <span class="btn-icon">
+              <svg viewBox="0 0 24 24">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+            </span>
+            <span class="btn-text" id="downloadBtnText">Download</span>
+            <div class="spinner"></div>
+          </button>
+          <button type="button" class="cta-button cta-button--alt" id="assignExamBtn">
+            <span class="btn-icon">
+              <svg viewBox="0 0 24 24">
+                <path d="M9 11l3 3L22 4"/>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+              </svg>
+            </span>
+            <span class="btn-text">Assign as Exam</span>
+          </button>
+        </div>
+
+        {# Exam options + generated share link. Hidden until "Assign as Exam" is clicked. #}
+        <div class="exam-assign" id="examAssign" hidden>
+          <div class="exam-assign-head">
+            <strong>Exam settings</strong>
+            <span>Name your test, set the schedule and options, then create the link learners will use.</span>
+          </div>
+          <div class="exam-assign-name">
+            <label class="exam-opt" style="width:100%">
+              <span>Quiz / Test name</span>
+              <input type="text" id="examTitle" maxlength="200" placeholder="e.g. Chapter 3 — Cell Biology Quiz">
+            </label>
+          </div>
+          <div class="exam-assign-opts">
+            <label class="exam-opt">
+              <span>Time limit (min)</span>
+              <input type="number" id="examTimeLimit" min="0" max="600" value="0" placeholder="0 = none">
+            </label>
+            <label class="exam-opt">
+              <span>Available from <small>(optional)</small></span>
+              <input type="datetime-local" id="examFrom">
+            </label>
+            <label class="exam-opt">
+              <span>Available until <small>(optional)</small></span>
+              <input type="datetime-local" id="examUntil">
+            </label>
+          </div>
+          <div class="exam-assign-opts">
+            <label class="exam-opt exam-opt--check">
+              <input type="checkbox" id="examShuffleQ" checked>
+              <span>Shuffle questions</span>
+            </label>
+            <label class="exam-opt exam-opt--check">
+              <input type="checkbox" id="examShuffleOpts">
+              <span>Shuffle options</span>
+            </label>
+            <label class="exam-opt exam-opt--check">
+              <input type="checkbox" id="examReveal" checked>
+              <span>Show answers after submit</span>
+            </label>
+            <label class="exam-opt exam-opt--check">
+              <input type="checkbox" id="examAllowPdf" checked>
+              <span>Let takers download a result PDF</span>
+            </label>
+            <label class="exam-opt exam-opt--check">
+              <input type="checkbox" id="examProctored">
+              <span>Camera proctoring (require webcam)</span>
+            </label>
+          </div>
+          <div class="exam-assign-opts" id="proctorIntervalRow" style="display:none;">
+            <label class="exam-opt">
+              <span>Snapshot every (seconds)</span>
+              <input type="number" id="examProctorInterval" min="5" max="300" value="20">
+            </label>
+          </div>
+          <label class="exam-opt" style="width:100%;margin-top:4px;">
+            <span>Instructions for takers <small>(optional)</small></span>
+            <textarea id="examInstructions" rows="3" placeholder="e.g. Answer all questions. Keep your camera on. No external help."
+              style="width:100%;padding:11px 13px;border:1.5px solid var(--color-border);border-radius:var(--radius-sm);font-family:var(--font);font-size:14px;background:var(--color-card-raised);color:var(--color-text);resize:vertical;"></textarea>
+          </label>
+          <div class="exam-tz-note">Times use your device's timezone (<span id="examTz"></span>).</div>
+          <button type="button" class="cta-button" id="createExamBtn">
+            <span class="btn-icon">
+              <svg viewBox="0 0 24 24">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+              </svg>
+            </span>
+            <span class="btn-text" id="createExamBtnText">Create Exam Link</span>
+            <div class="spinner"></div>
+          </button>
+          <div class="exam-share" id="examShare" hidden>
+            <div class="exam-share-label">✓ Exam created — share this link with test-takers:</div>
+            <div class="exam-share-row">
+              <input type="text" id="examShareUrl" readonly>
+              <button type="button" class="btn-copy" id="examCopyBtn">Copy</button>
+              <a class="btn-copy" id="examOpenBtn" href="#" target="_blank" rel="noopener">Open</a>
+            </div>
+            <div class="exam-share-hint">View submissions anytime under <b>Exams &amp; Results</b> in the admin panel.</div>
+          </div>
+          <div class="exam-assign-error" id="examAssignError" hidden></div>
+        </div>
+      </section>
+
+      <footer class="main-footer" id="mainFooter">
+        <span class="footer-datetime" id="footerDatetime"></span>
+      </footer>
+    </main>
+  </div>
+
+  <!-- Chat Widget -->
+  <div class="chat-widget" id="chatWidget">
+    <div class="chat-panel" id="chatPanel">
+      <div class="chat-header">
+        <div class="chat-header-avatar">
+          <svg viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+        <div class="chat-header-info">
+          <div class="chat-header-name">Quizify AI</div>
+          <div class="chat-header-status">Powered by Groq &amp; Gemini</div>
+        </div>
+        <button class="chat-clear" id="chatClear" title="Clear conversation" aria-label="Clear conversation">
+          <svg viewBox="0 0 24 24">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          </svg>
+        </button>
+      </div>
+      <div class="chat-messages" id="chatMessages">
+        <div class="chat-msg chat-msg--bot">
+          <div class="chat-msg-bubble">
+            Hi! I&rsquo;m Quizify AI. Ask me anything about using this tool!
+          </div>
+        </div>
+      </div>
+      <div class="chat-suggestions" id="chatSuggestions">
+        <button class="chat-chip" data-query="How do I use Quizify?">How do I use this?</button>
+        <button class="chat-chip" data-query="What formats are supported?">Supported formats</button>
+        <button class="chat-chip" data-query="Why am I getting No questions found?">No questions found</button>
+        <button class="chat-chip" data-query="How do I specify correct answers?">Add answer key</button>
+        <button class="chat-chip" data-query="What output formats are available?">Excel vs CSV</button>
+        <button class="chat-chip" data-query="How does dark mode work?">Dark mode</button>
+      </div>
+      <div class="chat-input-area">
+        <input class="chat-input" id="chatInput" type="text" placeholder="Ask a question..." autocomplete="off">
+        <button class="chat-send" id="chatSend" aria-label="Send">
+          <svg viewBox="0 0 24 24">
+            <line x1="22" y1="2" x2="11" y2="13"/>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+        </button>
+      </div>
+      <div class="chat-footer">Press <kbd>Enter</kbd> to send</div>
+    </div>
+    <button class="chat-toggle" id="chatToggle" aria-label="Chat with Quizify AI">
+      <svg class="chat-toggle-icon" viewBox="0 0 24 24">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+      <svg class="chat-close-icon" viewBox="0 0 24 24">
+        <line x1="18" y1="6" x2="6" y2="18"/>
+        <line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+
+  <script>
+    (function() {
+      'use strict';
+
+      // ============================================
+      // DARK MODE
+      // ============================================
+      const themeToggle = document.getElementById('themeToggle');
+      const sunIcon = themeToggle.querySelector('.sun-icon');
+      const moonIcon = themeToggle.querySelector('.moon-icon');
+      const isDarkMode = localStorage.getItem('quizify-dark-mode') === 'true';
+
+      function applyTheme(isDark) {
+        if (isDark) {
+          document.body.classList.add('dark-mode');
+          sunIcon.style.display = 'none';
+          moonIcon.style.display = 'block';
+        } else {
+          document.body.classList.remove('dark-mode');
+          sunIcon.style.display = 'block';
+          moonIcon.style.display = 'none';
+        }
+        localStorage.setItem('quizify-dark-mode', isDark);
+      }
+
+      applyTheme(isDarkMode);
+
+      themeToggle.addEventListener('click', function() {
+        applyTheme(!document.body.classList.contains('dark-mode'));
+      });
+
+      // ============================================
+      // METHOD CARDS (Upload vs Paste)
+      // ============================================
+      const uploadCard = document.getElementById('uploadCard');
+      const pasteCard = document.getElementById('pasteCard');
+      const uploadArea = document.getElementById('uploadArea');
+      const pasteArea = document.getElementById('pasteArea');
+      const fileInput = document.getElementById('fileInput');
+      const quizText = document.getElementById('quizText');
+      const infoBannerText = document.getElementById('infoBannerText');
+      const submitBtn = document.getElementById('submitBtn');
+
+      let activeMethod = 'upload';
+
+      function setActiveMethod(method) {
+        activeMethod = method;
+
+        uploadCard.classList.toggle('active', method === 'upload');
+        pasteCard.classList.toggle('active', method === 'paste');
+        uploadArea.classList.toggle('visible', method === 'upload');
+        pasteArea.classList.toggle('visible', method === 'paste');
+
+        if (method === 'upload') {
+          quizText.disabled = true;
+          fileInput.disabled = false;
+          if (fileInput.files.length > 0) {
+            infoBannerText.textContent = 'File ready. Configure output below and click "Process & Preview".';
+          } else {
+            infoBannerText.textContent = 'Drag and drop a file (.docx, .pdf, .txt, .csv, .xlsx, .json, and more) or click to browse.';
+          }
+        } else {
+          fileInput.disabled = true;
+          quizText.disabled = false;
+          if (quizText.value.trim().length > 0) {
+            infoBannerText.textContent = 'Quiz text ready. Configure output below and click "Process & Preview".';
+          } else {
+            infoBannerText.textContent = 'Paste your quiz questions and answers in the text area above.';
+          }
+        }
+      }
+
+      uploadCard.addEventListener('click', function() {
+        setActiveMethod('upload');
+      });
+
+      pasteCard.addEventListener('click', function() {
+        setActiveMethod('paste');
+      });
+
+      // ============================================
+      // OPTIONAL SUBJECT / TOPIC TOGGLE
+      // ============================================
+      // Subject and Topic are optional, so they stay hidden behind a small icon.
+      // Clicking it reveals both fields (and focuses Subject); clicking again hides
+      // them and clears the values so an accidental open leaves no stray data.
+      (function optionalMeta() {
+        var toggle = document.getElementById('optionalMetaToggle');
+        var fields = document.getElementById('optionalMetaFields');
+        if (!toggle || !fields) return;
+
+        toggle.addEventListener('click', function () {
+          var open = fields.hasAttribute('hidden');
+          if (open) {
+            fields.removeAttribute('hidden');
+            toggle.setAttribute('aria-expanded', 'true');
+            toggle.classList.add('is-open');
+            var subject = document.getElementById('subject');
+            if (subject) subject.focus();
+          } else {
+            fields.setAttribute('hidden', '');
+            toggle.setAttribute('aria-expanded', 'false');
+            toggle.classList.remove('is-open');
+            var s = document.getElementById('subject');
+            var t = document.getElementById('topic');
+            if (s) s.value = '';
+            if (t) t.value = '';
+          }
+        });
+      })();
+
+      // ============================================
+      // AI PROVIDER DISCOVERY
+      // ============================================
+      // The provider list is server-side config, so ask the server what is actually
+      // usable rather than hard-coding it here. The picker stays hidden unless there
+      // is a real choice to make.
+      (function loadProviders() {
+        var group = document.getElementById('providerGroup');
+        var select = document.getElementById('provider');
+        if (!group || !select) return;
+
+        fetch('/api/providers')
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (data) {
+            if (!data) return;
+            var usable = (data.providers || []).filter(function (p) { return p.configured; });
+            if (usable.length < 2) return;   // nothing to choose between
+
+            usable.forEach(function (p) {
+              var opt = document.createElement('option');
+              opt.value = p.name;
+              opt.textContent = p.label + (p.free_tier ? ' (free tier)' : '');
+              select.appendChild(opt);
+            });
+            group.style.display = '';
+          })
+          .catch(function () { /* provider picker is optional */ });
+      })();
+
+      // ============================================
+      // DRAG & DROP FILE UPLOAD
+      // ============================================
+      const dropZone = document.getElementById('dropZone');
+      const dropZoneFile = document.getElementById('dropZoneFile');
+      const fileNameDisplay = document.getElementById('fileNameDisplay');
+      const fileRemove = document.getElementById('fileRemove');
+
+      var SUPPORTED_EXTS = ['.docx', '.pdf', '.txt', '.md', '.markdown', '.rtf', '.html',
+                            '.htm', '.xml', '.csv', '.tsv', '.xlsx', '.xlsm', '.xls', '.json'];
+
+      function handleFile(file) {
+        if (!file) return;
+        var name = file.name.toLowerCase();
+        var supported = SUPPORTED_EXTS.some(function (ext) { return name.endsWith(ext); });
+        if (!supported) {
+          alert('Unsupported file type. Please upload one of: ' + SUPPORTED_EXTS.join(', '));
+          return;
+        }
+
+        // Set the file input
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        fileInput.files = dt.files;
+
+        // Update UI
+        fileNameDisplay.textContent = file.name;
+        dropZone.classList.add('has-file');
+        infoBannerText.textContent = 'File ready. Configure output below and click "Process & Preview".';
+      }
+
+      function removeFile() {
+        fileInput.value = '';
+        dropZone.classList.remove('has-file');
+        fileNameDisplay.textContent = '';
+        infoBannerText.textContent = 'Drag and drop a file (.docx, .pdf, .txt, .csv, .xlsx, .json, and more) or click to browse.';
+      }
+
+      // Click to open file picker
+      dropZone.addEventListener('click', function(e) {
+        if (e.target.closest('.drop-zone-remove')) return;
+        fileInput.click();
+      });
+
+      fileInput.addEventListener('change', function() {
+        if (this.files.length > 0) {
+          handleFile(this.files[0]);
+        }
+      });
+
+      fileRemove.addEventListener('click', function(e) {
+        e.stopPropagation();
+        removeFile();
+      });
+
+      // Drag events
+      dropZone.addEventListener('dragenter', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!dropZone.classList.contains('has-file')) {
+          dropZone.classList.add('drag-over');
+        }
+      });
+
+      dropZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!dropZone.classList.contains('has-file')) {
+          dropZone.classList.add('drag-over');
+        }
+      });
+
+      dropZone.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove('drag-over');
+      });
+
+      dropZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove('drag-over');
+
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+          handleFile(files[0]);
+        }
+      });
+
+      // ============================================
+      // TEXTAREA INPUT
+      // ============================================
+      quizText.addEventListener('input', function() {
+        if (this.value.trim().length > 0) {
+          // Switch to paste method if not already
+          if (activeMethod !== 'paste') {
+            setActiveMethod('paste');
+          }
+          // Clear file if text is entered
+          if (fileInput.files.length > 0) {
+            removeFile();
+          }
+          infoBannerText.textContent = 'Quiz text ready. Configure output below and click "Process & Preview".';
+        } else {
+          infoBannerText.textContent = 'Paste your quiz questions and answers in the text area above.';
+        }
+      });
+
+      // ============================================
+      // FORM SUBMISSION
+      // ============================================
+      const quizForm = document.getElementById('quizForm');
+
+      const submitBtnText = submitBtn.querySelector('.btn-text');
+      var elapsedTimer = null;
+
+      // Parsing can take a while when AI assist is involved. Counting up is the
+      // difference between "it's working" and "it's frozen".
+      function startElapsedTimer() {
+        var started = Date.now();
+        clearInterval(elapsedTimer);
+        submitBtnText.textContent = 'Processing...';
+        elapsedTimer = setInterval(function() {
+          var seconds = Math.round((Date.now() - started) / 1000);
+          submitBtnText.textContent = 'Processing... ' + seconds + 's';
+          if (seconds === 20) {
+            infoBannerText.textContent =
+              'Still working. Long documents that need AI assist can take a while — ' +
+              'set AI Assist to "Off" for a rules-only run, which is near-instant.';
+          }
+        }, 1000);
+      }
+
+      function resetSubmitBtn() {
+        clearInterval(elapsedTimer);
+        elapsedTimer = null;
+        submitBtnText.textContent = 'Process & Preview';
+        submitBtn.classList.remove('loading');
+        submitBtn.disabled = false;
+      }
+
+      function triggerDownload(blob, filename) {
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      quizForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        var hasFile = fileInput.files.length > 0;
+        var hasText = quizText.value.trim().length > 0;
+
+        if (!hasFile && !hasText) {
+          alert('Please either upload a file or paste quiz text.');
+          return;
+        }
+
+        // Show loading state
+        submitBtn.classList.add('loading');
+        submitBtn.disabled = true;
+        startElapsedTimer();
+
+        // Disable unused input so it's excluded from FormData
+        if (activeMethod === 'upload') {
+          quizText.disabled = true;
+          fileInput.disabled = false;
+        } else {
+          fileInput.disabled = true;
+          quizText.disabled = false;
+        }
+
+        var formData = new FormData(quizForm);
+
+        // Parse first and show the result, rather than downloading blind. The export
+        // step reuses this payload, so nothing is parsed twice.
+        fetch('/api/parse', { method: 'POST', body: formData })
+          .then(function(response) {
+            return response.json()
+              .catch(function() { throw new Error('Unexpected response from server.'); })
+              .then(function(data) {
+                if (!response.ok) {
+                  throw new Error(data.error || 'Server error. Check your input and try again.');
+                }
+                return data;
+              });
+          })
+          .then(function(data) {
+            resetSubmitBtn();
+            if (!data.questions || !data.questions.length) {
+              throw new Error((data.warnings && data.warnings[0]) || 'No questions found.');
+            }
+            showPreview(data);
+          })
+          .catch(function(err) {
+            resetSubmitBtn();
+            alert(err.message || 'Something went wrong. Please try again.');
+          });
+      });
+
+      // ============================================
+      // PREVIEW
+      // ============================================
+      // /api/parse returns the questions; the user checks them here and only then
+      // downloads. The download posts this same payload to /api/export, so choosing a
+      // different format costs nothing and never re-runs the parse (or the AI call).
+
+      const previewPanel = document.getElementById('previewPanel');
+      const previewStats = document.getElementById('previewStats');
+      const previewNotes = document.getElementById('previewNotes');
+      const previewList = document.getElementById('previewList');
+      const previewSource = document.getElementById('previewSource');
+      const previewSearch = document.getElementById('previewSearch');
+      const previewReviewOnly = document.getElementById('previewReviewOnly');
+      const previewRepeatsOnly = document.getElementById('previewRepeatsOnly');
+      const previewRepeatsRow = document.getElementById('previewRepeatsRow');
+      const previewShowAll = document.getElementById('previewShowAll');
+      const previewFormat = document.getElementById('previewFormat');
+      const previewBack = document.getElementById('previewBack');
+      const previewLearn = document.getElementById('previewLearn');
+      const previewLearnRow = document.getElementById('previewLearnRow');
+      const previewLearnHint = document.getElementById('previewLearnHint');
+      const downloadBtn = document.getElementById('downloadBtn');
+      const downloadBtnText = document.getElementById('downloadBtnText');
+
+      var PREVIEW_PAGE = 40;   // long quizzes render in batches to keep the panel responsive
+      var previewData = null;
+      var previewLimit = PREVIEW_PAGE;
+      // Whether this account is offered the in-preview editor. This one is a UI
+      // affordance rather than a security control: the export endpoint renders whatever
+      // payload it is given, which is what stops a download re-parsing the document.
+      // The limits that must hold — AI, formats, upload size, file types, quota — are
+      // all applied on the server.
+      var canEdit = {{ 'true' if allowed.editing else 'false' }};
+      var editingIndex = -1;   // index into previewData.questions, or -1 when not editing
+      var previewOriginals = [];  // pristine copies, so a correction can be diffed on save
+
+      function escapeHtml(value) {
+        return String(value === null || value === undefined ? '' : value)
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      }
+
+      function plural(count, word) {
+        return count + ' ' + word + (count === 1 ? '' : 's');
+      }
+
+      // A question is flagged the same way the Excel export tints its rows.
+      function questionState(q) {
+        if (!q.answer) return 'missing';
+        if ((q.confidence || 0) < 0.6 || (q.warnings || []).length) return 'review';
+        return 'ok';
+      }
+
+      // "2026-07-31 07:52:11" -> "31 Jul 2026". Timestamps are stored in UTC without a
+      // zone marker, so they are split rather than fed to Date, which would shift them.
+      function shortDate(stamp) {
+        var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(stamp || ''));
+        if (!m) return String(stamp || '');
+        var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        return parseInt(m[3], 10) + ' ' + months[parseInt(m[2], 10) - 1] + ' ' + m[1];
+      }
+
+      // The reuse notice: how often this question has been downloaded before, and where.
+      function seenBeforeHtml(seen) {
+        var times = seen.times_used || 1;
+        var html = '<div class="preview-seen">' +
+                   '<svg viewBox="0 0 24 24">' +
+                     '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>' +
+                   '</svg><div><b>You have used this question before</b> — ' +
+                   escapeHtml(times) + (times === 1 ? ' time' : ' times') + '.';
+
+        var uses = seen.uses || [];
+        if (uses.length) {
+          html += '<ul class="preview-seen-list">';
+          uses.forEach(function(use) {
+            var where = use.source_name || 'pasted text';
+            var tags = [use.subject, use.topic].filter(Boolean).join(' / ');
+            html += '<li>' + escapeHtml(shortDate(use.created_at)) + ' — ' +
+                    escapeHtml(where) + (tags ? ' <span>(' + escapeHtml(tags) + ')</span>' : '') +
+                    '</li>';
+          });
+          html += '</ul>';
+        } else if (seen.last_used_at) {
+          html += ' Last on ' + escapeHtml(shortDate(seen.last_used_at)) +
+                  (seen.last_source ? ' in ' + escapeHtml(seen.last_source) : '') + '.';
+        }
+        return html + '</div></div>';
+      }
+
+      function statTile(value, label, variant) {
+        return '<div class="preview-stat' + (variant ? ' preview-stat--' + variant : '') + '">' +
+                 '<div class="preview-stat-value">' + escapeHtml(value) + '</div>' +
+                 '<div class="preview-stat-label">' + escapeHtml(label) + '</div>' +
+               '</div>';
+      }
+
+      // Counts are recomputed from the questions rather than read from the server's
+      // stats, so they stay truthful as the user edits.
+      function renderStats(data) {
+        var s = data.stats || {};
+        var questions = data.questions || [];
+        var total = questions.length;
+        var answered = questions.filter(function(q) { return !!q.answer; }).length;
+        var edited = questions.filter(function(q) { return q._edited; }).length;
+        var confidence = total
+          ? questions.reduce(function(sum, q) { return sum + (q.confidence || 0); }, 0) / total
+          : 0;
+
+        var repeats = questions.filter(function(q) { return !!q.seen_before; }).length;
+
+        previewStats.innerHTML =
+          statTile(total, 'Questions found', 'primary') +
+          statTile(answered, 'With answers', 'success') +
+          statTile(total - answered, 'Missing answer', (total - answered ? 'warn' : '')) +
+          (edited
+            ? statTile(edited, 'Edited by you', 'primary')
+            : statTile(Math.round(confidence * 100) + '%', 'Avg confidence')) +
+          (repeats ? statTile(repeats, 'Used before', 'repeat') : '');
+
+        // Only offer the repeats filter when there is something to filter to.
+        previewRepeatsRow.hidden = repeats === 0;
+
+        var bits = [];
+        if (data.source_name) bits.push(escapeHtml(data.source_name));
+        if (s.source_format) bits.push(escapeHtml(s.source_format));
+        if (s.engine) bits.push('parsed by ' + escapeHtml(s.engine));
+        if (data.duration_ms !== undefined) {
+          bits.push('took ' + (data.duration_ms / 1000).toFixed(1) + 's');
+        }
+        previewSource.textContent = bits.join(' · ');
+      }
+
+      function renderNotes(data) {
+        var html = '';
+        var repeats = (data.questions || []).filter(function(q) { return !!q.seen_before; }).length;
+        if (repeats) {
+          html += '<div class="preview-note preview-note--repeat">' +
+                  '<b>' + escapeHtml(repeats) + ' of these ' +
+                  (repeats === 1 ? 'questions has' : 'questions have') +
+                  ' been downloaded before.</b> Each one is marked below with when and ' +
+                  'where you used it.</div>';
+        }
+        (data.warnings || []).forEach(function(w) {
+          html += '<div class="preview-note preview-note--warn">' + escapeHtml(w) + '</div>';
+        });
+        (data.notes || []).forEach(function(n) {
+          html += '<div class="preview-note">' + escapeHtml(n) + '</div>';
+        });
+        previewNotes.innerHTML = html;
+      }
+
+      // Filtering reorders what is on screen, so every card carries the question's real
+      // index in previewData.questions — that is what edits and saves address.
+      function visibleQuestions() {
+        var term = previewSearch.value.trim().toLowerCase();
+        var reviewOnly = previewReviewOnly.checked;
+
+        return (previewData.questions || []).map(function(q, idx) {
+          return { q: q, idx: idx };
+        }).filter(function(entry) {
+          var q = entry.q;
+          if (previewRepeatsOnly.checked && !q.seen_before) return false;
+          if (reviewOnly && questionState(q) === 'ok' && !q._edited) return false;
+          if (!term) return true;
+          if ((q.question || '').toLowerCase().indexOf(term) !== -1) return true;
+          return (q.options || []).some(function(o) {
+            return (o.text || '').toLowerCase().indexOf(term) !== -1;
+          });
+        });
+      }
+
+      function questionHtml(q, idx, position) {
+        var state = questionState(q);
+        var html = '<article class="preview-q' +
+                   (state === 'ok' ? '' : ' preview-q--' + state) +
+                   (q._edited ? ' preview-q--edited' : '') + '" data-idx="' + idx + '">' +
+                   '<div class="preview-q-head">' +
+                     '<span class="preview-q-num">' + escapeHtml(q.number || position) + '.</span>' +
+                     '<span class="preview-q-text">' + escapeHtml(q.question) + '</span>' +
+                     '<span class="preview-tag">' + escapeHtml(q.type || 'Unknown') + '</span>';
+
+        if (q._edited) {
+          html += '<span class="preview-tag preview-tag--edited">Edited</span>';
+        } else if (state === 'missing') {
+          html += '<span class="preview-tag preview-tag--missing">No answer</span>';
+        } else if (state === 'review') {
+          html += '<span class="preview-tag preview-tag--review">Check</span>';
+        }
+        if (q.seen_before) {
+          html += '<span class="preview-tag preview-tag--repeat">Used before</span>';
+        }
+        if (canEdit) {
+          html += '<button type="button" class="preview-edit" data-act="edit">Edit</button>';
+        }
+        html += '</div>';
+
+        if ((q.options || []).length) {
+          html += '<ul class="preview-opts">';
+          q.options.forEach(function(o) {
+            html += '<li class="preview-opt' + (o.correct ? ' preview-opt--correct' : '') + '">' +
+                      '<span class="preview-opt-label">' + escapeHtml(o.label) + '.</span>' +
+                      '<span>' + escapeHtml(o.text) + '</span>' +
+                    '</li>';
+          });
+          html += '</ul>';
+        }
+
+        // Free-text and numeric answers have no option to highlight, so spell them out.
+        if (q.answer && !(q.options || []).some(function(o) { return o.correct; })) {
+          html += '<div class="preview-answer">Answer: <b>' + escapeHtml(q.answer) + '</b></div>';
+        } else if (!q.answer) {
+          html += '<div class="preview-answer preview-answer--missing">' +
+                  '<b>No answer found</b> — click Edit to add one.</div>';
+        }
+
+        if (q.seen_before) html += seenBeforeHtml(q.seen_before);
+
+        return html + '</article>';
+      }
+
+      // ---- edit mode ----
+
+      var QUESTION_TYPES = ['MCQ', 'Multi-Select', 'True/False', 'Fill in the Blank',
+                            'Matching', 'Assertion-Reason', 'Ordering', 'Numeric',
+                            'Short Answer', 'Unknown'];
+
+      function editorHtml(q, idx) {
+        var multi = (q.type === 'Multi-Select');
+        var inputType = multi ? 'checkbox' : 'radio';
+
+        var html = '<article class="preview-q preview-q--editing" data-idx="' + idx + '">' +
+          '<div class="preview-edit-row">' +
+            '<label class="preview-edit-label">Question</label>' +
+            '<textarea class="preview-edit-text" data-field="question" rows="2">' +
+              escapeHtml(q.question) + '</textarea>' +
+          '</div>' +
+          '<div class="preview-edit-row preview-edit-row--inline">' +
+            '<div>' +
+              '<label class="preview-edit-label">Type</label>' +
+              '<select class="form-select" data-field="type">' +
+                QUESTION_TYPES.map(function(t) {
+                  return '<option value="' + escapeHtml(t) + '"' +
+                         (t === q.type ? ' selected' : '') + '>' + escapeHtml(t) + '</option>';
+                }).join('') +
+              '</select>' +
+            '</div>' +
+            '<div>' +
+              '<label class="preview-edit-label">Answer text ' +
+                '<span class="preview-edit-hint">(if not an option)</span></label>' +
+              '<input class="form-input" type="text" data-field="answer_text" value="' +
+                escapeHtml(q.answer_text || '') + '">' +
+            '</div>' +
+          '</div>';
+
+        html += '<div class="preview-edit-row">' +
+                  '<label class="preview-edit-label">Options ' +
+                    '<span class="preview-edit-hint">' +
+                    (multi ? 'tick every correct answer' : 'select the correct answer') +
+                    '</span></label>' +
+                  '<div class="preview-edit-opts" data-role="options">';
+        (q.options || []).forEach(function(o, i) {
+          html += optionRowHtml(o, i, inputType);
+        });
+        html += '</div>' +
+                '<button type="button" class="preview-edit-add" data-act="addopt">' +
+                  '+ Add option</button>' +
+                '</div>';
+
+        html += '<div class="preview-edit-row">' +
+                  '<label class="preview-edit-label">Explanation ' +
+                    '<span class="preview-edit-hint">(optional)</span></label>' +
+                  '<input class="form-input" type="text" data-field="explanation" value="' +
+                    escapeHtml(q.explanation || '') + '">' +
+                '</div>';
+
+        html += '<div class="preview-edit-actions">' +
+                  '<button type="button" class="preview-edit-cancel" data-act="cancel">Cancel</button>' +
+                  '<button type="button" class="preview-edit-save" data-act="save">Save changes</button>' +
+                '</div>';
+
+        return html + '</article>';
+      }
+
+      function optionRowHtml(option, index, inputType) {
+        return '<div class="preview-edit-opt" data-role="option">' +
+                 '<input type="' + inputType + '" name="correct-opt" data-role="correct"' +
+                   (option.correct ? ' checked' : '') + '>' +
+                 '<span class="preview-edit-opt-label">' +
+                   escapeHtml(option.label || String.fromCharCode(65 + index)) + '.</span>' +
+                 '<input class="form-input" type="text" data-role="opttext" value="' +
+                   escapeHtml(option.text || '') + '">' +
+                 '<button type="button" class="preview-edit-del" data-act="delopt" ' +
+                   'aria-label="Remove option">&times;</button>' +
+               '</div>';
+      }
+
+      function renderList() {
+        var entries = visibleQuestions();
+
+        if (!entries.length) {
+          previewList.innerHTML = '<div class="preview-empty">No questions match this filter.</div>';
+          previewShowAll.hidden = true;
+          return;
+        }
+
+        var shown = entries.slice(0, previewLimit);
+        previewList.innerHTML = shown.map(function(entry, position) {
+          return entry.idx === editingIndex
+            ? editorHtml(entry.q, entry.idx)
+            : questionHtml(entry.q, entry.idx, position + 1);
+        }).join('');
+
+        var remaining = entries.length - shown.length;
+        previewShowAll.hidden = remaining <= 0;
+        previewShowAll.textContent = 'Show ' + plural(remaining, 'more question');
+      }
+
+      function updateDownloadLabel() {
+        var total = (previewData && previewData.questions || []).length;
+        downloadBtnText.textContent = 'Download ' + plural(total, 'question');
+
+        // The opt-in only makes sense once there is something to remember, and only
+        // when the server says the feedback loop is switched on.
+        var edited = collectCorrections().length;
+        if (!previewLearnRow) return;
+        previewLearnRow.hidden = !(learningEnabled && edited > 0);
+        previewLearnHint.textContent =
+          ' — store ' + plural(edited, 'edit') + ' so the same question is parsed ' +
+          'correctly next time. Only the edited questions are saved.';
+      }
+
+      // Whether the server has the feedback loop enabled at all.
+      var learningEnabled = false;
+      fetch('/api/health')
+        .then(function(r) { return r.ok ? r.json() : null; })
+        .then(function(data) {
+          learningEnabled = !!(data && data.learning && data.learning.enabled);
+        })
+        .catch(function() { /* the opt-in simply stays hidden */ });
+
+      function showPreview(data) {
+        previewData = data;
+        previewLimit = PREVIEW_PAGE;
+        editingIndex = -1;
+        previewSearch.value = '';
+        previewReviewOnly.checked = false;
+        previewRepeatsOnly.checked = false;
+        // Snapshot before any editing so a saved correction can be diffed against
+        // exactly what the parser produced.
+        previewOriginals = JSON.parse(JSON.stringify(data.questions || []));
+
+        renderStats(data);
+        renderNotes(data);
+        renderList();
+        updateDownloadLabel();
+
+        // Keep the chosen format in step with the one picked on the form.
+        previewFormat.value = document.getElementById('format').value;
+
+        quizForm.hidden = true;
+        previewPanel.hidden = false;
+        previewPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      function hidePreview() {
+        previewPanel.hidden = true;
+        quizForm.hidden = false;
+        quizForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      // One delegated handler covers every card, so re-rendering the list never leaves
+      // stale listeners behind.
+      previewList.addEventListener('click', function(e) {
+        var button = e.target.closest('[data-act]');
+        if (!button) return;
+        var card = button.closest('[data-idx]');
+        if (!card) return;
+        var idx = parseInt(card.getAttribute('data-idx'), 10);
+
+        switch (button.getAttribute('data-act')) {
+          case 'edit':
+            editingIndex = idx;
+            renderList();
+            break;
+          case 'cancel':
+            editingIndex = -1;
+            renderList();
+            break;
+          case 'save':
+            saveEdit(card, idx);
+            break;
+          case 'addopt':
+            addOptionRow(card);
+            break;
+          case 'delopt':
+            button.closest('[data-role="option"]').remove();
+            relabelOptions(card);
+            break;
+        }
+      });
+
+      // Switching to or from Multi-Select changes whether several answers can be ticked.
+      previewList.addEventListener('change', function(e) {
+        if (e.target.getAttribute('data-field') !== 'type') return;
+        var card = e.target.closest('[data-idx]');
+        var multi = e.target.value === 'Multi-Select';
+        var inputs = card.querySelectorAll('[data-role="correct"]');
+        var seen = false;
+        inputs.forEach(function(input) {
+          input.type = multi ? 'checkbox' : 'radio';
+          // Collapsing to a single answer keeps only the first tick.
+          if (!multi && input.checked) {
+            if (seen) input.checked = false;
+            seen = true;
+          }
+        });
+      });
+
+      function addOptionRow(card) {
+        var container = card.querySelector('[data-role="options"]');
+        var count = container.querySelectorAll('[data-role="option"]').length;
+        if (count >= 26) return;   // labels are A-Z
+        var multi = card.querySelector('[data-field="type"]').value === 'Multi-Select';
+        container.insertAdjacentHTML(
+          'beforeend', optionRowHtml({ label: '', text: '', correct: false }, count,
+                                     multi ? 'checkbox' : 'radio'));
+      }
+
+      // Labels are positional, so removing option B must turn C into the new B.
+      function relabelOptions(card) {
+        card.querySelectorAll('[data-role="option"]').forEach(function(row, i) {
+          row.querySelector('.preview-edit-opt-label').textContent =
+            String.fromCharCode(65 + i) + '.';
+        });
+      }
+
+      function saveEdit(card, idx) {
+        var question = previewData.questions[idx];
+        var text = card.querySelector('[data-field="question"]').value.trim();
+        if (!text) {
+          alert('A question needs some text.');
+          return;
+        }
+
+        var options = [];
+        var labels = [];
+        card.querySelectorAll('[data-role="option"]').forEach(function(row) {
+          var optText = row.querySelector('[data-role="opttext"]').value.trim();
+          if (!optText) return;   // blank rows are treated as deleted
+          var label = String.fromCharCode(65 + options.length);
+          var correct = row.querySelector('[data-role="correct"]').checked;
+          if (correct) labels.push(label);
+          options.push({ label: label, text: optText, correct: correct });
+        });
+
+        var answerText = card.querySelector('[data-field="answer_text"]').value.trim();
+
+        question.question = text;
+        question.type = card.querySelector('[data-field="type"]').value;
+        question.options = options;
+        question.answer_labels = labels;
+        question.answer_text = answerText || null;
+        question.answer = labels.length ? labels.join(',') : answerText;
+        question.explanation =
+          card.querySelector('[data-field="explanation"]').value.trim() || null;
+
+        // A person has now read this question, so it is no longer a parser guess.
+        if (question.answer) {
+          question.answer_source = 'user';
+          question.confidence = 1;
+          question.warnings = (question.warnings || []).filter(function(w) {
+            return w !== 'No answer found.';
+          });
+        }
+        question._edited = true;
+
+        editingIndex = -1;
+        renderStats(previewData);
+        renderList();
+        updateDownloadLabel();
+      }
+
+      // Only questions that actually changed are worth storing, and only the fields
+      // that changed carry any signal.
+      function collectCorrections() {
+        var out = [];
+        (previewData.questions || []).forEach(function(q, i) {
+          if (!q._edited) return;
+          var after = JSON.parse(JSON.stringify(q));
+          delete after._edited;
+          out.push({ before: previewOriginals[i], after: after });
+        });
+        return out;
+      }
+
+      previewBack.addEventListener('click', hidePreview);
+
+      previewSearch.addEventListener('input', function() {
+        previewLimit = PREVIEW_PAGE;
+        renderList();
+      });
+
+      previewReviewOnly.addEventListener('change', function() {
+        previewLimit = PREVIEW_PAGE;
+        renderList();
+      });
+
+      previewRepeatsOnly.addEventListener('change', function() {
+        previewLimit = PREVIEW_PAGE;
+        renderList();
+      });
+
+      previewShowAll.addEventListener('click', function() {
+        previewLimit += PREVIEW_PAGE * 4;
+        renderList();
+      });
+
+      downloadBtn.addEventListener('click', function() {
+        if (!previewData) return;
+
+        if (editingIndex !== -1) {
+          alert('Save or cancel the question you are editing first.');
+          return;
+        }
+
+        downloadBtn.classList.add('loading');
+        downloadBtn.disabled = true;
+
+        var corrections = collectCorrections();
+        var learn = previewLearn && previewLearn.checked && corrections.length > 0;
+
+        var payload = {
+          // _edited is preview bookkeeping; the server has no use for it.
+          questions: previewData.questions.map(function(q) {
+            var copy = {};
+            for (var key in q) {
+              if (Object.prototype.hasOwnProperty.call(q, key) && key !== '_edited') {
+                copy[key] = q[key];
+              }
+            }
+            return copy;
+          }),
+          learn: learn,
+          corrections: learn ? corrections : [],
+          source_name: previewData.source_name,
+          source_format: previewData.source_format,
+          engine: previewData.engine,
+          warnings: previewData.warnings,
+          notes: previewData.notes,
+          subject: document.getElementById('subject').value,
+          topic: document.getElementById('topic').value,
+          format: previewFormat.value,
+          max_options: document.getElementById('max_options').value,
+          answer_style: document.getElementById('answer_style').value
+        };
+
+        fetch('/api/export', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+          .then(function(response) {
+            if (!response.ok) {
+              return response.json()
+                .catch(function() { return {}; })
+                .then(function(data) {
+                  throw new Error(data.error || 'Could not build the file.');
+                });
+            }
+            var disposition = response.headers.get('Content-Disposition') || '';
+            return response.blob().then(function(blob) {
+              var match = disposition.match(/filename[^;=\n]*=([^;]*)/);
+              var filename = match ? match[1].trim().replace(/"/g, '') : 'quiz.xlsx';
+              triggerDownload(blob, filename);
+            });
+          })
+          .catch(function(err) {
+            alert(err.message || 'Something went wrong. Please try again.');
+          })
+          .then(function() {
+            downloadBtn.classList.remove('loading');
+            downloadBtn.disabled = false;
+          });
+      });
+
+      // ============================================
+      // ASSIGN AS EXAM
+      // ============================================
+      var assignExamBtn = document.getElementById('assignExamBtn');
+      var examAssign = document.getElementById('examAssign');
+      var examShare = document.getElementById('examShare');
+      var examAssignError = document.getElementById('examAssignError');
+
+      function questionsForExam() {
+        return (previewData.questions || []).map(function(q) {
+          var copy = {};
+          for (var key in q) {
+            if (Object.prototype.hasOwnProperty.call(q, key) && key !== '_edited') copy[key] = q[key];
+          }
+          return copy;
+        });
+      }
+
+      var createExamBtn = document.getElementById('createExamBtn');
+
+      // The "Assign as Exam" button just opens (or scrolls to) the settings panel.
+      if (assignExamBtn) {
+        assignExamBtn.addEventListener('click', function() {
+          if (!previewData) { alert('Process a quiz first, then assign it as an exam.'); return; }
+          if (editingIndex !== -1) { alert('Save or cancel the question you are editing first.'); return; }
+          // Prefill a sensible name and show the local timezone once.
+          var titleEl = document.getElementById('examTitle');
+          if (titleEl && !titleEl.value) {
+            titleEl.value = (document.getElementById('subject').value || previewData.source_name || '').trim();
+          }
+          var tzEl = document.getElementById('examTz');
+          if (tzEl && !tzEl.textContent) {
+            try { tzEl.textContent = Intl.DateTimeFormat().resolvedOptions().timeZone || 'local'; }
+            catch (e) { tzEl.textContent = 'local'; }
+          }
+          examAssign.removeAttribute('hidden');
+          examAssign.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+      }
+
+      // Show the snapshot-interval field only when proctoring is enabled.
+      var examProctored = document.getElementById('examProctored');
+      if (examProctored) {
+        examProctored.addEventListener('change', function() {
+          document.getElementById('proctorIntervalRow').style.display =
+            examProctored.checked ? '' : 'none';
+        });
+      }
+
+      // The "Create Exam Link" button (inside the panel) actually creates the exam.
+      if (createExamBtn) {
+        createExamBtn.addEventListener('click', function() {
+          if (!previewData) return;
+          if (editingIndex !== -1) { alert('Save or cancel the question you are editing first.'); return; }
+
+          examAssignError.setAttribute('hidden', '');
+          createExamBtn.classList.add('loading');
+          createExamBtn.disabled = true;
+
+          var titleVal = document.getElementById('examTitle').value.trim();
+          var payload = {
+            questions: questionsForExam(),
+            title: titleVal || document.getElementById('subject').value.trim() || previewData.source_name || 'Quiz',
+            subject: document.getElementById('subject').value,
+            topic: document.getElementById('topic').value,
+            time_limit_min: parseInt(document.getElementById('examTimeLimit').value, 10) || 0,
+            shuffle_q: document.getElementById('examShuffleQ').checked,
+            shuffle_opts: document.getElementById('examShuffleOpts').checked,
+            reveal_answers: document.getElementById('examReveal').checked,
+            allow_pdf: document.getElementById('examAllowPdf').checked,
+            available_from: document.getElementById('examFrom').value,
+            available_until: document.getElementById('examUntil').value,
+            instructions: document.getElementById('examInstructions').value,
+            proctored: document.getElementById('examProctored').checked,
+            proctor_interval: parseInt(document.getElementById('examProctorInterval').value, 10) || 20
+          };
+
+          fetch('/api/exams', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          })
+            .then(function(r) { return r.json().then(function(d){ return { ok: r.ok, d: d }; }); })
+            .then(function(res) {
+              if (!res.ok) throw new Error(res.d.error || 'Could not create the exam.');
+              var url = res.d.share_url;
+              document.getElementById('examShareUrl').value = url;
+              document.getElementById('examOpenBtn').href = url;
+              examShare.removeAttribute('hidden');
+              examShare.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            })
+            .catch(function(err) {
+              examAssignError.textContent = err.message || 'Something went wrong.';
+              examAssignError.removeAttribute('hidden');
+            })
+            .then(function() {
+              createExamBtn.classList.remove('loading');
+              createExamBtn.disabled = false;
+            });
+        });
+      }
+
+      var examCopyBtn = document.getElementById('examCopyBtn');
+      if (examCopyBtn) {
+        examCopyBtn.addEventListener('click', function() {
+          var input = document.getElementById('examShareUrl');
+          input.select();
+          navigator.clipboard.writeText(input.value).then(function() {
+            var t = examCopyBtn.textContent; examCopyBtn.textContent = 'Copied!';
+            setTimeout(function() { examCopyBtn.textContent = t; }, 1500);
+          }).catch(function() { document.execCommand('copy'); });
+        });
+      }
+
+      // ============================================
+      // AI CHAT WIDGET
+      // ============================================
+
+      var faqData = [
+        {
+          keywords: ['how', 'use', 'start', 'help', 'guide', 'tutorial', 'begin', 'getting started'],
+          question: 'How do I use Quizify?',
+          answer: 'It\'s simple! Choose one of two input methods:<br><br>\uD83D\uDCC4 <b>Upload</b> &mdash; Drag and drop a file (.docx, .pdf, .txt, .csv, .xlsx, .json, and more) or click to browse.<br>\uD83D\uDCDD <b>Paste</b> &mdash; Copy and paste quiz text directly.<br><br>Then choose Excel or CSV and click <b>"Process &amp; Download"</b>. Subject and Topic are optional &mdash; add them from the small icon if you want them as columns.'
+        },
+        {
+          keywords: ['format', 'supported', 'question', 'option', 'answer', 'type', 'accept', 'structure'],
+          question: 'What formats are supported?',
+          answer: 'Quizify supports many formats:<br><br><b>Questions:</b> Q1., 1., (1), [1], I. (Roman), A. (with question word), Que. 1, Q.No.1, and more.<br><br><b>Options:</b> A., (A), [B], A -, A &rarr;, Option A:, Choice B:, and bullet points.<br><br><b>Answers:</b> Answer: B, Correct: C, Answer = A, Answer: True/False, and answer grids like 1-B, 2:D, Q1 B.'
+        },
+        {
+          keywords: ['upload', 'file', 'docx', 'document', 'drag', 'drop', 'browse'],
+          question: 'How do I upload a file?',
+          answer: 'Click the <b>Upload Quiz File</b> card, then either:<br><br>\u2022 Drag and drop a file onto the dashed area<br>\u2022 Click the area to browse and select a file<br><br>Supported: <b>.docx, .pdf, .txt, .md, .rtf, .html, .csv, .tsv, .xlsx, .json</b>. For anything else, copy the text and use the Paste method instead.'
+        },
+        {
+          keywords: ['paste', 'copy', 'text', 'type', 'write', 'manual', 'input'],
+          question: 'How do I paste quiz text?',
+          answer: 'Click the <b>Paste Quiz Text</b> card, then paste or type your quiz content into the text area.<br><br>Each question should start with a number (1., Q1., etc.) and each option on its own line. Leave blank lines between questions for best results.'
+        },
+        {
+          keywords: ['output', 'excel', 'csv', 'download', 'export', 'file type'],
+          question: 'What output formats are available?',
+          answer: 'You can download your quiz in two formats:<br><br>\uD83D\uDCCA <b>Excel (.xlsx)</b> &mdash; Structured spreadsheet with headers for Subject, Topic, Question, Options, and Correct Answer.<br><br>\uD83D\uDCC3 <b>CSV (.csv)</b> &mdash; Comma-separated values for use in any spreadsheet or data analysis tool.'
+        },
+        {
+          keywords: ['error', 'wrong', 'no questions', 'not working', 'issue', 'problem', 'bug', 'fail', 'empty', 'zero'],
+          question: 'Why am I getting "No questions found"?',
+          answer: 'The parser couldn\'t identify your questions. Check the following:<br><br>\u2022 Each question starts with a number (Q1., 1., (1), etc.)<br>\u2022 Options are labeled A., B., C., D.<br>\u2022 There\'s a blank line between questions<br>\u2022 No extra spaces or unusual characters<br><br>Try copying a clean version and pasting again.'
+        },
+        {
+          keywords: ['answer', 'correct', 'key', 'wrong answer', 'answer key', 'specify', 'mark'],
+          question: 'How do I specify correct answers?',
+          answer: 'Add an answer line after the options. Examples:<br><br><code>Answer: B</code><br><code>Correct Option: C</code><br><code>Right Answer: D</code><br><code>Answer = A</code><br><br>You can also use a grid at the end:<br><code>1-B, 2-D, 3-C</code><br><code>Q1: B, Q2: D</code><br><br>For True/False: <code>Answer: True</code>'
+        },
+        {
+          keywords: ['multiple', 'multi', 'several', 'many', 'batch', 'bulk'],
+          question: 'Can I process multiple quizzes at once?',
+          answer: 'Yes! Paste as many questions as you want. The parser extracts all questions and generates a single file. Just keep the format consistent throughout.'
+        },
+        {
+          keywords: ['about', 'what is', 'quizify', 'this app', 'tool', 'purpose', 'does'],
+          question: 'What is Quizify?',
+          answer: 'Quizify converts quiz documents and text into structured Excel or CSV files. It saves teachers, students, and professionals hours of manual data entry by automatically parsing questions, options, and answers from plain text or .docx files.'
+        },
+        {
+          keywords: ['dark', 'theme', 'mode', 'light', 'appearance', 'color'],
+          question: 'How do I switch between dark and light mode?',
+          answer: 'Click the <b>theme toggle button</b> (sun/moon icon) in the top-right corner of the main panel. Your preference is saved automatically.'
+        },
+        {
+          keywords: ['free', 'cost', 'price', 'paid', 'premium', 'license'],
+          question: 'Is Quizify free to use?',
+          answer: 'Yes, Quizify is completely free to use. Upload or paste your quizzes and download the results with no limits or restrictions.'
+        },
+        {
+          keywords: ['bold', 'bolded', 'bold answer', 'highlight', 'highlighted', 'correct bold'],
+          question: 'Does Quizify detect bold answers in DOCX files?',
+          answer: 'Yes! When you upload a .docx file, Quizify checks if any option is bolded and automatically marks it as the correct answer. This works with both tab-separated and auto-numbered lists in Word.'
+        },
+        {
+          keywords: ['true', 'false', 'true/false', 'tf', 'boolean'],
+          question: 'How does True/False detection work?',
+          answer: 'Quizify auto-detects True/False questions if the text contains <code>(true/false)</code> or <code>true or false</code> markers. It automatically adds the <b>TRUE</b> and <b>FALSE</b> options and sets the answer based on your answer key line.'
+        },
+        {
+          keywords: ['subject', 'topic', 'column', 'header', 'field', 'metadata'],
+          question: 'What are Subject and Topic fields for?',
+          answer: '<b>Subject</b> and <b>Topic</b> are added as columns in the output file to help organize your quiz data. For example, Subject could be "Computer Science" and Topic "Python Basics". They are optional &mdash; click the <b>Add subject &amp; topic</b> icon above the options to fill them in if you want them.'
+        }
+      ];
+
+      var chatToggle = document.getElementById('chatToggle');
+      var chatPanel = document.getElementById('chatPanel');
+      var chatMessages = document.getElementById('chatMessages');
+      var chatInput = document.getElementById('chatInput');
+      var chatSend = document.getElementById('chatSend');
+      var chatClear = document.getElementById('chatClear');
+      var chatSuggestions = document.getElementById('chatSuggestions');
+      var isChatOpen = false;
+
+      function findBestAnswer(query) {
+        var q = query.toLowerCase();
+        var bestScore = 0;
+        var best = null;
+        faqData.forEach(function(item) {
+          var score = 0;
+          item.keywords.forEach(function(kw) {
+            if (q.indexOf(kw) !== -1) score++;
+          });
+          if (score > bestScore) {
+            bestScore = score;
+            best = item;
+          }
+        });
+        return best;
+      }
+
+      function formatTime() {
+        var d = new Date();
+        var h = d.getHours(), m = d.getMinutes();
+        var ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12 || 12;
+        return h + ':' + (m < 10 ? '0' : '') + m + ' ' + ampm;
+      }
+
+      // Map a provider name from /api/chat onto a friendly label. Only the two
+      // configured chat agents are named; anything else falls back generically.
+      function providerLabel(provider) {
+        var names = { groq: 'Groq', gemini: 'Gemini' };
+        if (!provider) return '';
+        return names[String(provider).toLowerCase()] || String(provider);
+      }
+
+      function addMessage(text, isUser, provider) {
+        var div = document.createElement('div');
+        div.className = 'chat-msg chat-msg--' + (isUser ? 'user' : 'bot');
+        if (provider) div.setAttribute('data-provider', provider);
+        var bubble = document.createElement('div');
+        bubble.className = 'chat-msg-bubble';
+        bubble.innerHTML = text;
+        div.appendChild(bubble);
+        // A bot reply from a live AI shows which agent answered.
+        var label = isUser ? '' : providerLabel(provider);
+        if (label) {
+          var badge = document.createElement('div');
+          badge.className = 'chat-msg-provider';
+          badge.textContent = 'Answered by ' + label;
+          div.appendChild(badge);
+        }
+        var time = document.createElement('div');
+        time.className = 'chat-msg-time';
+        time.textContent = formatTime();
+        div.appendChild(time);
+        chatMessages.appendChild(div);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        saveChatHistory();
+      }
+
+      function saveChatHistory() {
+        var msgs = [];
+        chatMessages.querySelectorAll('.chat-msg').forEach(function(el) {
+          var bubble = el.querySelector('.chat-msg-bubble');
+          if (bubble && !el.classList.contains('chat-msg--typing')) {
+            msgs.push({
+              text: bubble.innerHTML,
+              isUser: el.classList.contains('chat-msg--user'),
+              provider: el.getAttribute('data-provider') || ''
+            });
+          }
+        });
+        try { sessionStorage.setItem('quizifyChatHistory', JSON.stringify(msgs)); } catch(e) {}
+      }
+
+      function restoreChatHistory() {
+        try {
+          var data = sessionStorage.getItem('quizifyChatHistory');
+          if (!data) return;
+          var msgs = JSON.parse(data);
+          if (!msgs.length) return;
+          chatSuggestions.style.display = 'none';
+          msgs.forEach(function(m) { addMessage(m.text, m.isUser, m.provider); });
+        } catch(e) {}
+      }
+
+      function showTyping(callback) {
+        var typingDiv = document.createElement('div');
+        typingDiv.className = 'chat-msg chat-msg--bot chat-msg--typing';
+        typingDiv.innerHTML = '<div class="chat-msg-bubble"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>';
+        chatMessages.appendChild(typingDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        setTimeout(function() {
+          typingDiv.remove();
+          if (callback) callback();
+        }, 800 + Math.random() * 600);
+      }
+
+      function handleQuery(query) {
+        if (!query.trim()) return;
+        chatSuggestions.style.display = 'none';
+        addMessage(query, true);
+        chatInput.value = '';
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/chat', true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.onload = function() {
+          showTyping(function() {
+            if (xhr.status === 200) {
+              var data = JSON.parse(xhr.responseText);
+              addMessage(data.reply, false, data.provider);
+            } else {
+              var match = findBestAnswer(query);
+              if (match) {
+                addMessage('<b>' + match.question + '</b><br><br>' + match.answer, false);
+              } else {
+                addMessage('I\'m not sure about that. Try asking about using Quizify, supported formats, uploading files, or common errors.', false);
+              }
+            }
+          });
+        };
+        xhr.onerror = function() {
+          showTyping(function() {
+            var match = findBestAnswer(query);
+            if (match) {
+              addMessage('<b>' + match.question + '</b><br><br>' + match.answer, false);
+            } else {
+              addMessage('I\'m not sure about that. Try asking about using Quizify, supported formats, uploading files, or common errors.', false);
+            }
+          });
+        };
+        xhr.send(JSON.stringify({message: query}));
+      }
+
+      function clearChat() {
+        chatMessages.innerHTML = '';
+        var welcome = document.createElement('div');
+        welcome.className = 'chat-msg chat-msg--bot';
+        welcome.innerHTML = '<div class="chat-msg-bubble">Hi! I\'m Quizify AI. Ask me anything about using this tool!</div>';
+        chatMessages.appendChild(welcome);
+        chatSuggestions.style.display = 'flex';
+        try { sessionStorage.removeItem('quizifyChatHistory'); } catch(e) {}
+      }
+
+      chatToggle.addEventListener('click', function() {
+        isChatOpen = !isChatOpen;
+        chatPanel.classList.toggle('open', isChatOpen);
+        chatToggle.classList.toggle('open', isChatOpen);
+        if (isChatOpen) {
+          chatInput.focus();
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+          restoreChatHistory();
+        }
+      });
+
+      chatSend.addEventListener('click', function() {
+        handleQuery(chatInput.value);
+      });
+
+      chatClear.addEventListener('click', function() {
+        clearChat();
+      });
+
+      chatInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleQuery(chatInput.value);
+        }
+      });
+
+      chatSuggestions.addEventListener('click', function(e) {
+        var chip = e.target.closest('.chat-chip');
+        if (chip) {
+          handleQuery(chip.getAttribute('data-query'));
+        }
+      });
+
+      // ============================================
+      // FOOTER DATETIME
+      // ============================================
+      var footerDt = document.getElementById('footerDatetime');
+      function updateFooterTime() {
+        var d = new Date();
+        var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+        var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        var dayName = days[d.getDay()];
+        var monthName = months[d.getMonth()];
+        var day = d.getDate();
+        var year = d.getFullYear();
+        var h = d.getHours(), m = d.getMinutes();
+        var ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12 || 12;
+        var timeStr = dayName + ', ' + monthName + ' ' + day + ', ' + year + ' | ' + h + ':' + (m < 10 ? '0' : '') + m + ' ' + ampm;
+        if (footerDt) footerDt.textContent = timeStr;
+      }
+      updateFooterTime();
+      setInterval(updateFooterTime, 60000);
+
+      // ============================================
+      // ACCORDION TOGGLES (left panel) — single open
+      // ============================================
+      document.querySelectorAll('.docs-toggle').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var targetId = this.getAttribute('data-target');
+          var content = document.getElementById(targetId);
+          if (!content) return;
+          var isOpen = content.classList.contains('open');
+          // Close all sections
+          document.querySelectorAll('.docs-content').forEach(function(c) {
+            c.classList.remove('open');
+          });
+          document.querySelectorAll('.docs-toggle').forEach(function(b) {
+            b.classList.remove('open');
+          });
+          // Open clicked section if it was closed
+          if (!isOpen) {
+            content.classList.add('open');
+            this.classList.add('open');
+          }
+        });
+      });
+
+      // ============================================
+      // INITIAL STATE
+      // ============================================
+      // Start with paste method active
+      setActiveMethod('paste');
+
+    })();
+  </script>
+
+  {# Loaded after the page's own script so the tour only ever drives finished UI.
+     It talks to the page through clicks and selectors, never through the closure
+     above, so neither file can break the other. #}
+  <script src="{{ url_for('static', filename='walkthrough.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+{% extends "admin/base.html" %}
+{% block title %}New Exam from Bank{% endblock %}
+{% block heading %}Create exam from question bank{% endblock %}
+{% block topbar %}
+  <a class="btn small" href="{{ url_for('admin.exams_list') }}">&larr; All exams</a>
+{% endblock %}
+
+{% block content %}
+{% if not bank_enabled %}
+  <div class="flash error">The question bank is turned off, so there are no saved questions to reuse.</div>
+{% endif %}
+
+<!-- Filter -->
+<div class="toolbar">
+  <form method="get" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+    <select name="subject" onchange="this.form.submit()">
+      <option value="">All subjects</option>
+      {% for s in subjects %}
+        <option value="{{ s.value }}" {% if s.value == subject %}selected{% endif %}>{{ s.value }} ({{ s.count }})</option>
+      {% endfor %}
+    </select>
+    <select name="topic" onchange="this.form.submit()">
+      <option value="">All topics</option>
+      {% for t in topics %}
+        <option value="{{ t.value }}" {% if t.value == topic %}selected{% endif %}>{{ t.value }} ({{ t.count }})</option>
+      {% endfor %}
+    </select>
+    <input type="text" name="q" value="{{ term }}" placeholder="Search text..."
+           style="padding:8px 12px;border:1.5px solid var(--admin-border,#d3dcec);border-radius:8px;">
+    <button type="submit" class="btn small">Filter</button>
+    {% if subject or topic or term %}<a class="btn small" href="{{ url_for('admin.exam_from_bank') }}">Clear</a>{% endif %}
+  </form>
+  <div class="spacer"></div>
+  <span class="hint">{{ questions|length }} question(s)</span>
+</div>
+
+<form method="post" id="bankExamForm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="subject" value="{{ subject }}">
+  <input type="hidden" name="topic" value="{{ topic }}">
+
+  <!-- Selection controls -->
+  <div class="card">
+    <div class="card-body" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+      <button type="button" class="btn small" id="selectAll">Select all</button>
+      <button type="button" class="btn small" id="selectNone">Clear selection</button>
+      <span style="display:inline-flex;gap:6px;align-items:center;">
+        <button type="button" class="btn small" id="randomBtn">Random</button>
+        <input type="number" id="randomN" min="1" value="10" style="width:70px;padding:7px 10px;border:1.5px solid var(--admin-border,#d3dcec);border-radius:8px;">
+        questions
+      </span>
+      <div class="spacer"></div>
+      <strong><span id="selCount">0</span> selected</strong>
+    </div>
+  </div>
+
+  <!-- Question list -->
+  <div class="card">
+    <div class="card-body tight">
+      {% if questions %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th style="width:36px;"></th><th>Question</th><th>Type</th><th class="num">Answer</th></tr>
+          </thead>
+          <tbody>
+            {% for q in questions %}
+            <tr>
+              <td><input type="checkbox" name="qid" value="{{ q.id }}" class="qcheck"></td>
+              <td>{{ q.question[:160] }}{% if q.question|length > 160 %}…{% endif %}</td>
+              <td><span class="badge mute">{{ q.qtype or '—' }}</span></td>
+              <td class="num mono">{{ q.answer_labels or q.answer_text or q.answer or '—' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        <div class="empty">No banked questions match this filter. Convert some quizzes first, or adjust the filter.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Exam settings -->
+  <div class="card">
+    <div class="card-head"><h2>Exam settings</h2><p>Name the test and set how it behaves.</p></div>
+    <div class="card-body">
+      <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="field">
+          <label>Quiz / Test name</label>
+          <input type="text" name="title" placeholder="e.g. {{ subject or 'Practice' }} test" required>
+        </div>
+        <div class="field">
+          <label>Time limit (minutes, 0 = none)</label>
+          <input type="number" name="time_limit_min" min="0" max="600" value="0">
+        </div>
+        <div class="field">
+          <label>Available from (optional)</label>
+          <input type="datetime-local" name="available_from">
+        </div>
+        <div class="field">
+          <label>Available until (optional)</label>
+          <input type="datetime-local" name="available_until">
+        </div>
+      </div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:14px;">
+        <label style="display:flex;gap:7px;align-items:center;"><input type="checkbox" name="shuffle_q" checked> Shuffle questions</label>
+        <label style="display:flex;gap:7px;align-items:center;"><input type="checkbox" name="shuffle_opts"> Shuffle options</label>
+        <label style="display:flex;gap:7px;align-items:center;"><input type="checkbox" name="reveal_answers" checked> Show answers after submit</label>
+        <label style="display:flex;gap:7px;align-items:center;"><input type="checkbox" name="allow_pdf" checked> Allow result PDF</label>
+      </div>
+      <div class="actions" style="margin-top:18px;">
+        <button type="submit" class="btn" id="createBtn" disabled>Create exam from selected</button>
+      </div>
+    </div>
+  </div>
+</form>
+
+<script>
+  (function(){
+    var checks = Array.prototype.slice.call(document.querySelectorAll('.qcheck'));
+    var selCount = document.getElementById('selCount');
+    var createBtn = document.getElementById('createBtn');
+    function refresh(){
+      var n = checks.filter(function(c){return c.checked;}).length;
+      selCount.textContent = n;
+      createBtn.disabled = n === 0;
+    }
+    checks.forEach(function(c){ c.addEventListener('change', refresh); });
+    document.getElementById('selectAll').addEventListener('click', function(){ checks.forEach(function(c){c.checked=true;}); refresh(); });
+    document.getElementById('selectNone').addEventListener('click', function(){ checks.forEach(function(c){c.checked=false;}); refresh(); });
+    document.getElementById('randomBtn').addEventListener('click', function(){
+      var n = parseInt(document.getElementById('randomN').value, 10) || 0;
+      checks.forEach(function(c){c.checked=false;});
+      var pool = checks.slice();
+      for (var i = pool.length - 1; i > 0; i--){ var j = Math.floor(Math.random()*(i+1)); var t=pool[i];pool[i]=pool[j];pool[j]=t; }
+      pool.slice(0, n).forEach(function(c){ c.checked = true; });
+      refresh();
+    });
+    refresh();
+  })();
+</script>
+{% endblock %}

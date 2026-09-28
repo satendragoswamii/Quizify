@@ -1,0 +1,203 @@
+{% extends "admin/base.html" %}
+{% block title %}Proctor · {{ attempt.taker_name }}{% endblock %}
+{% block heading %}Live proctor{% endblock %}
+{% block topbar %}
+  <a class="btn small" href="{{ url_for('admin.exam_detail', exam_id=exam.id) }}">&larr; Back to results</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-head">
+    <h2>{{ attempt.taker_name }}</h2>
+    <p>
+      {{ attempt.taker_email or 'no email' }} &middot; {{ exam.title }}
+      &middot; <span id="frameCount">{{ snapshots|length }}</span> frames captured
+    </p>
+  </div>
+  <div class="card-body">
+    <!-- Live frame -->
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:18px;align-items:start;">
+      <div>
+        <div style="position:relative;background:#0b1120;border-radius:14px;overflow:hidden;aspect-ratio:4/3;display:grid;place-items:center;">
+          <!-- Real-time WebRTC video (primary). -->
+          <video id="liveVideo" autoplay playsinline muted
+                 style="width:100%;height:100%;object-fit:contain;display:none;background:#0b1120;"></video>
+          <!-- Snapshot fallback (shown only when there's no live connection). -->
+          <img id="liveFrame" alt="Last webcam frame"
+               style="width:100%;height:100%;object-fit:contain;display:none;">
+          <div id="noFrame" style="color:#8aa;text-align:center;font-size:14px;padding:20px;">
+            Connecting to the learner's camera…<br><small>Live video appears while the learner is taking this proctored exam. The exam link must be opened over <b>https</b> or <b>localhost</b> for the camera to work.</small>
+          </div>
+          <span id="liveDot" style="position:absolute;top:12px;left:12px;display:none;align-items:center;gap:6px;background:rgba(220,43,43,.9);color:#fff;font-size:12px;font-weight:700;padding:5px 10px;border-radius:999px;">
+            ● LIVE
+          </span>
+          <!-- Audio must start muted (browser autoplay policy); admin clicks to listen. -->
+          <button type="button" id="audioBtn" title="Toggle audio"
+                  style="position:absolute;bottom:12px;right:12px;display:none;align-items:center;gap:6px;background:rgba(11,17,32,.82);color:#fff;border:1px solid rgba(255,255,255,.2);font-size:12px;font-weight:700;padding:7px 12px;border-radius:999px;cursor:pointer;">
+            <span id="audioIcon">🔇</span> <span id="audioLabel">Muted</span>
+          </button>
+        </div>
+        <div class="muted" style="font-size:13px;margin-top:8px;"><span id="lastAt">Connecting…</span> · <span id="audioHint">audio muted — click 🔇 on the video to listen</span></div>
+      </div>
+
+      <!-- Timeline thumbnails -->
+      <div>
+        <div class="muted" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">Timeline</div>
+        <div id="thumbs" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-height:420px;overflow-y:auto;">
+          {% for s in snapshots %}
+          <img src="{{ s.image }}" title="{{ s.created_at }}" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;border:1px solid var(--admin-border,#d3dcec);">
+          {% endfor %}
+        </div>
+        {% if not snapshots %}<div class="empty" style="padding:14px;">No frames yet.</div>{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function(){
+    var ATTEMPT = {{ attempt.id }};
+    var timelineUrl = "{{ url_for('admin.exam_latest_frame', attempt_id=attempt.id) }}";
+    var snapshotFallbackUrl = "{{ url_for('admin.exam_live', attempt_id=attempt.id) }}";
+    var video = document.getElementById('liveVideo');
+    var img = document.getElementById('liveFrame');
+    var noFrame = document.getElementById('noFrame');
+    var dot = document.getElementById('liveDot');
+    var lastAt = document.getElementById('lastAt');
+    var frameCount = document.getElementById('frameCount');
+    var thumbs = document.getElementById('thumbs');
+    var audioBtn = document.getElementById('audioBtn');
+    var audioIcon = document.getElementById('audioIcon');
+    var audioLabel = document.getElementById('audioLabel');
+    var audioHint = document.getElementById('audioHint');
+    var seen = null;
+
+    // Audio toggle — the video must start muted (autoplay policy); admin opts in to listen.
+    audioBtn.addEventListener('click', function(){
+      video.muted = !video.muted;
+      if (!video.muted){
+        // Some browsers pause on unmute; nudge playback.
+        var p = video.play(); if (p && p.catch) p.catch(function(){});
+        audioIcon.textContent = '🔊'; audioLabel.textContent = 'Audio on';
+        audioHint.textContent = 'listening to microphone';
+      } else {
+        audioIcon.textContent = '🔇'; audioLabel.textContent = 'Muted';
+        audioHint.textContent = 'audio muted — click 🔇 on the video to listen';
+      }
+    });
+    function updateAudioAvailability(){
+      var s = video.srcObject;
+      var hasAudio = s && s.getAudioTracks && s.getAudioTracks().length > 0;
+      audioBtn.style.display = hasAudio ? 'inline-flex' : 'none';
+      if (!hasAudio) audioHint.textContent = 'no microphone from this learner';
+    }
+
+    function setNote(msg){ noFrame.innerHTML = msg; noFrame.style.display='block'; }
+    function showLive(){
+      video.style.display='block'; img.style.display='none'; noFrame.style.display='none';
+      dot.style.display='inline-flex'; dot.textContent='● LIVE'; dot.style.background='rgba(220,43,43,.9)';
+      lastAt.textContent = 'Live · real-time';
+      updateAudioAvailability();
+    }
+    function showOffline(){
+      video.style.display='none';
+      dot.style.display='none';
+      audioBtn.style.display='none';
+      // Fall back to the most recent recorded snapshot, if any.
+      fetch(snapshotFallbackUrl, {cache:'no-store', credentials:'same-origin'})
+        .then(function(r){ return r.ok ? r.json() : null; })
+        .then(function(d){
+          if (d && d.image){
+            img.src=d.image; img.style.display='block'; noFrame.style.display='none';
+            dot.style.display='inline-flex'; dot.textContent='● LAST SEEN'; dot.style.background='rgba(107,122,153,.9)';
+            lastAt.textContent = 'Not live — showing last snapshot';
+          } else {
+            img.style.display='none';
+            setNote('Waiting for the learner’s camera…<br><small>Live video appears while the learner is taking this proctored exam with the camera on. The exam link must be opened over <b>https</b> or <b>localhost</b>.</small>');
+            lastAt.textContent = 'Waiting for camera';
+          }
+        }).catch(function(){});
+    }
+
+    // ---- WebRTC viewer: initiate the offer, receive the learner's camera ----
+    var pc = null, ws = null, wsRetry = null, gotStream = false;
+    var RTC_CONFIG = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+    function wsUrl(){
+      var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      return proto + '//' + location.host + '/ws/proctor/' + ATTEMPT + '/viewer';
+    }
+
+    function startPeer(){
+      if (pc){ try{pc.close();}catch(e){} }
+      gotStream = false;
+      pc = new RTCPeerConnection(RTC_CONFIG);
+      // Receive the learner's camera and microphone (recv-only).
+      pc.addTransceiver('video', { direction: 'recvonly' });
+      pc.addTransceiver('audio', { direction: 'recvonly' });
+      pc.ontrack = function(ev){
+        if (ev.streams && ev.streams[0]){ video.srcObject = ev.streams[0]; gotStream = true; showLive(); }
+      };
+      pc.onicecandidate = function(ev){
+        if (ev.candidate && ws && ws.readyState===1) ws.send(JSON.stringify({type:'ice', candidate:ev.candidate}));
+      };
+      pc.onconnectionstatechange = function(){
+        if (pc && (pc.connectionState==='disconnected' || pc.connectionState==='failed' || pc.connectionState==='closed')){
+          gotStream = false; showOffline();
+        }
+      };
+      pc.createOffer().then(function(offer){ return pc.setLocalDescription(offer).then(function(){return offer;}); })
+        .then(function(offer){ if (ws && ws.readyState===1) ws.send(JSON.stringify({type:'offer', sdp:offer})); })
+        .catch(function(){});
+    }
+
+    function connect(){
+      try { ws = new WebSocket(wsUrl()); } catch(e){ return scheduleReconnect(); }
+      ws.onopen = function(){ lastAt.textContent = 'Connecting to camera…'; startPeer(); };
+      ws.onmessage = function(ev){
+        var m; try { m = JSON.parse(ev.data); } catch(e){ return; }
+        if (m.type === 'answer' && pc){
+          pc.setRemoteDescription(new RTCSessionDescription(m.sdp)).catch(function(){});
+        } else if (m.type === 'ice' && m.candidate && pc){
+          pc.addIceCandidate(new RTCIceCandidate(m.candidate)).catch(function(){});
+        } else if (m.type === 'peer-joined'){
+          // The camera (re)connected — renegotiate so we get its stream.
+          startPeer();
+        } else if (m.type === 'peer-left'){
+          gotStream = false; showOffline();
+        }
+      };
+      ws.onclose = function(){ scheduleReconnect(); };
+      ws.onerror = function(){ try{ws.close();}catch(e){} };
+    }
+    function scheduleReconnect(){
+      if (wsRetry) return;
+      if (!gotStream) showOffline();
+      wsRetry = setTimeout(function(){ wsRetry=null; connect(); }, 2500);
+    }
+
+    // ---- Durable snapshot timeline (every 5s) ----
+    function timelineTick(){
+      fetch(timelineUrl, {cache:'no-store', credentials:'same-origin'})
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(d){
+        if (!d) return;
+        frameCount.textContent = d.count;
+        if (d.image && d.at !== seen){
+          seen = d.at;
+          var t = new Image(); t.src=d.image; t.title=d.at;
+          t.style.cssText='width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;border:1px solid var(--admin-border,#d3dcec);';
+          thumbs.insertBefore(t, thumbs.firstChild);
+        }
+      }).catch(function(){});
+    }
+
+    if (window.RTCPeerConnection){
+      showOffline(); connect();
+    } else {
+      setNote('<span style="color:#b23b32;">This browser does not support live video (WebRTC).</span>');
+    }
+    timelineTick(); setInterval(timelineTick, 5000);
+  })();
+</script>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ 'Enroll student' if mode == 'new' else 'Edit student' }}{% endblock %}
+{% block heading %}{{ 'Enroll student' if mode == 'new' else 'Edit student' }}{% endblock %}
+{% block topbar %}
+  <a class="btn small" href="{{ url_for('admin.students') }}">&larr; All students</a>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:640px;">
+  <div class="card-body">
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="field">
+          <label>Batch name</label>
+          <input type="text" name="batch" value="{{ student.batch or '' }}" placeholder="e.g. 2026-CS-A">
+        </div>
+        <div class="field">
+          <label>Roll number</label>
+          <input type="text" name="roll_no" value="{{ student.roll_no or '' }}" placeholder="e.g. R001">
+        </div>
+        <div class="field" style="grid-column:1/-1;">
+          <label>Student name</label>
+          <input type="text" name="name" value="{{ student.name or '' }}" placeholder="Full name" required>
+        </div>
+        <div class="field" style="grid-column:1/-1;">
+          <label>Email</label>
+          <input type="email" name="email" value="{{ student.email or '' }}" placeholder="student@example.com" required>
+        </div>
+        <div class="field" style="grid-column:1/-1;">
+          <label>{{ 'Password' if mode == 'new' else 'New password (leave blank to keep current)' }}</label>
+          <input type="password" name="password" placeholder="At least 8 characters"
+                 {% if mode == 'new' %}required{% endif %}>
+        </div>
+        {% if mode == 'edit' %}
+        <div class="field" style="grid-column:1/-1;">
+          <label style="display:flex;gap:8px;align-items:center;font-weight:500;">
+            <input type="checkbox" name="is_active" {% if student.is_active %}checked{% endif %}> Account active
+          </label>
+        </div>
+        {% endif %}
+      </div>
+      <div class="actions" style="margin-top:18px;">
+        <button type="submit" class="btn">{{ 'Enroll student' if mode == 'new' else 'Save changes' }}</button>
+        <a class="btn" href="{{ url_for('admin.students') }}">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

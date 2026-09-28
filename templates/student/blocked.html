@@ -1,0 +1,43 @@
+{# Shown when a student opens an exam they can't take right now. #}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unavailable &middot; {{ app_name }}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Inter',system-ui,sans-serif;color:#10162a;min-height:100vh;display:grid;place-items:center;padding:24px;
+      background:radial-gradient(120% 80% at 100% 0%,#eef2fe 0%,transparent 52%),radial-gradient(90% 70% at 0% 100%,#f0edff 0%,transparent 48%),#f6f8fe;}
+    .card{background:#fff;border:1px solid #e3e8f2;border-radius:20px;padding:44px 40px;text-align:center;max-width:460px;box-shadow:0 24px 56px rgba(20,30,80,.12);}
+    .icon{width:64px;height:64px;border-radius:16px;margin:0 auto 20px;display:grid;place-items:center;background:#fdf1e3;color:#B45309;}
+    .icon svg{width:32px;height:32px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+    h1{font-size:22px;font-weight:800;}
+    p{color:#6b7280;margin-top:10px;font-size:15px;line-height:1.6;}
+    a{display:inline-flex;align-items:center;gap:8px;margin-top:22px;padding:11px 20px;border-radius:12px;background:linear-gradient(135deg,#3358D4,#2544AE);color:#fff;text-decoration:none;font-weight:700;font-size:15px;}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+    {% if reason == 'completed' %}
+      <h1>Already submitted</h1>
+      <p>You have already completed this quiz{% if attempt and attempt.created_at %} on <b>{{ attempt.created_at }}</b>{% endif %}. It can only be attempted once and cannot be reviewed.</p>
+    {% elif reason == 'not_assigned' %}
+      <h1>Not assigned to you</h1>
+      <p>This quiz hasn&rsquo;t been assigned to your account.</p>
+    {% elif reason == 'not_yet' %}
+      <h1>This quiz hasn&rsquo;t opened yet</h1>
+      <p>It becomes available on <b>{{ avail.starts|replace('T',' at ') if avail and avail.starts else 'a scheduled time' }}</b>. Please come back then.</p>
+    {% elif reason == 'ended' %}
+      <h1>The deadline has passed</h1>
+      <p>This quiz closed on <b>{{ avail.ended|replace('T',' at ') if avail and avail.ended else 'the scheduled time' }}</b>, so it can no longer be started.</p>
+    {% else %}
+      <h1>This quiz is closed</h1>
+      <p>New attempts are not being accepted right now.</p>
+    {% endif %}
+    <a href="{{ url_for('student.portal') }}">← Back to my quizzes</a>
+  </div>
+</body>
+</html>

@@ -1,0 +1,66 @@
+{% extends "admin/base.html" %}
+{% block title %}Users{% endblock %}
+{% block topbar %}
+  <a class="btn primary small" href="{{ url_for('admin.user_new') }}">Add user</a>
+{% endblock %}
+
+{% block content %}
+<div class="toolbar">
+  <form method="get">
+    <input type="text" name="q" value="{{ search }}" placeholder="Search name or email">
+    <select name="role">
+      <option value="">All roles</option>
+      {% for r in roles %}
+        <option value="{{ r }}" {% if role_filter == r %}selected{% endif %}>{{ r }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn small">Filter</button>
+    {% if search or role_filter %}
+      <a class="btn small" href="{{ url_for('admin.users') }}">Clear</a>
+    {% endif %}
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-body tight">
+    {% if users %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>User</th><th>Role</th><th>Status</th>
+            <th class="num">Daily quota</th><th>Last sign-in</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr>
+            <td>
+              <strong>{{ u.name or '—' }}</strong>
+              <div class="muted">{{ u.email }}</div>
+            </td>
+            <td>
+              <span class="badge {% if u.role == 'admin' %}warn{% elif u.role == 'editor' %}{% else %}mute{% endif %}">
+                {{ u.role }}
+              </span>
+            </td>
+            <td>
+              {% if u.is_active %}<span class="badge ok">active</span>
+              {% else %}<span class="badge err">disabled</span>{% endif %}
+            </td>
+            <td class="num">{{ u.daily_quota or 'unlimited' }}</td>
+            <td class="muted">{{ u.last_login_at or 'never' }}</td>
+            <td style="text-align:right">
+              <a class="btn small" href="{{ url_for('admin.user_edit', user_id=u.id) }}">Manage</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="empty">No users match this filter.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

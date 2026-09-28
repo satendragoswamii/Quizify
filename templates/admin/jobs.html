@@ -1,0 +1,100 @@
+{% extends "admin/base.html" %}
+{% block title %}Conversions{% endblock %}
+{% block topbar %}
+  <a class="btn small" href="{{ url_for('admin.jobs_export') }}">Export CSV</a>
+{% endblock %}
+
+{% block content %}
+<div class="toolbar">
+  <form method="get">
+    <select name="status">
+      <option value="">All statuses</option>
+      <option value="ok" {% if status == 'ok' %}selected{% endif %}>Succeeded</option>
+      <option value="error" {% if status == 'error' %}selected{% endif %}>Failed</option>
+      <option value="empty" {% if status == 'empty' %}selected{% endif %}>No questions found</option>
+    </select>
+    <button type="submit" class="btn small">Filter</button>
+    {% if status %}<a class="btn small" href="{{ url_for('admin.jobs') }}">Clear</a>{% endif %}
+  </form>
+  <div class="spacer"></div>
+  <span class="hint">{{ total }} record(s)</span>
+</div>
+
+<div class="card">
+  <div class="card-body tight">
+    {% if jobs %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>When</th><th>Source</th><th>User</th><th>Engine</th>
+            <th class="num">Questions</th><th class="num">Answered</th>
+            <th class="num">Conf.</th><th class="num">Time</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for job in jobs %}
+          <tr>
+            <td class="muted">{{ job.created_at }}</td>
+            <td>
+              {{ job.source_name or 'pasted text' }}
+              <div class="muted mono">{{ job.source_format }}{% if job.subject %} &middot; {{ job.subject }}{% endif %}</div>
+            </td>
+            <td class="muted">{{ job.user_email or 'anonymous' }}</td>
+            <td><span class="badge mute">{{ job.engine or '—' }}</span></td>
+            <td class="num">{{ job.questions }}</td>
+            <td class="num">{{ job.answered }}</td>
+            <td class="num">{{ '%.0f'|format(job.avg_confidence * 100) }}%</td>
+            <td class="num muted">{{ job.duration_ms }}ms</td>
+            <td>
+              {% if job.status == 'ok' %}<span class="badge ok">ok</span>
+              {% elif job.status == 'empty' %}<span class="badge warn">empty</span>
+              {% else %}<span class="badge err" title="{{ job.error }}">error</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="empty">No conversions match this filter.</div>
+    {% endif %}
+  </div>
+
+  {% if total > per_page %}
+  <div class="pager">
+    {% if page > 1 %}
+      <a class="btn small" href="{{ url_for('admin.jobs', page=page-1, status=status) }}">&larr; Previous</a>
+    {% endif %}
+    <span class="muted">Page {{ page }} of {{ (total // per_page) + (1 if total % per_page else 0) }}</span>
+    {% if page * per_page < total %}
+      <a class="btn small" href="{{ url_for('admin.jobs', page=page+1, status=status) }}">Next &rarr;</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+{% if has_role('admin') %}
+<div class="card danger-zone">
+  <div class="card-head">
+    <h2>Purge old records</h2>
+    <p>Permanently deletes conversion history older than the given number of days.</p>
+  </div>
+  <div class="card-body">
+    <form method="post" action="{{ url_for('admin.jobs_purge') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-grid">
+        <div class="field">
+          <label for="days">Older than (days)</label>
+          <input type="number" id="days" name="days" value="90" min="1">
+        </div>
+      </div>
+      <div class="actions">
+        <button type="submit" class="btn danger"
+                data-confirm="Permanently delete matching conversion records?">Purge records</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

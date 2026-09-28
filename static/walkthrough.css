@@ -1,0 +1,460 @@
+/* ==============================================================================
+   WALKTHROUGH — the guided tour overlay
+   ==============================================================================
+   Three layers, each with one job, because trying to make a single element both
+   dim the page and let clicks reach the highlighted control never ends well:
+
+     .wt-guard   five transparent click blockers arranged AROUND the highlight.
+                 The gap between them is a real hole, so a step that asks the
+                 user to actually click something works — no synthetic events.
+     .wt-scrim   the visible dimming. One element with a 9999px box-shadow, so
+                 the cutout gets rounded corners for free and morphs between
+                 steps by animating four numbers instead of repainting a mask.
+     .wt-pop     the instruction card, positioned in JS against the same rect.
+
+   Every colour is a token, so the tour follows the page into dark mode without
+   a single duplicated rule beyond the two overrides at the bottom.
+   ============================================================================== */
+
+:root {
+  --wt-dim: rgba(16, 23, 42, 0.55);
+  --wt-ring: var(--color-primary-light);
+}
+
+/* ==============================
+   GUARDS + SCRIM
+   ============================== */
+
+.wt-guard {
+  position: fixed;
+  z-index: 9000;
+  background: transparent;
+}
+
+/* Hidden for steps flagged interactive, which is what leaves the hole clickable. */
+.wt-guard--hole[hidden] {
+  display: none;
+}
+
+.wt-scrim {
+  position: fixed;
+  z-index: 9001;
+  pointer-events: none;
+  border-radius: var(--radius-md);
+  /* Ring first so it paints ON TOP of the dim it sits inside. */
+  box-shadow:
+    0 0 0 2px var(--wt-ring),
+    0 0 0 9999px var(--wt-dim);
+  transition:
+    opacity 220ms var(--ease-out),
+    top 320ms var(--ease-out),
+    left 320ms var(--ease-out),
+    width 320ms var(--ease-out),
+    height 320ms var(--ease-out),
+    border-radius 320ms var(--ease-out);
+}
+
+/* Ending the tour has to stop this element painting altogether. Shrinking it to
+   0x0 is NOT enough — the dimming is a 9999px shadow spreading out from the
+   border box, so a zero-size scrim still covers the whole screen in grey. That
+   left the page dim until a reload. Visibility flips only once the fade is done,
+   so the lights come back up smoothly instead of snapping. */
+.wt-scrim--off {
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 220ms var(--ease-out),
+    visibility 0s linear 220ms;
+}
+
+/* Same reasoning for the click blockers: one unambiguous "tour is not running"
+   state, rather than relying on them being parked at zero size. */
+.wt-guard--off {
+  display: none;
+}
+
+/* A no-target step (the welcome card) dims the whole page: the hole collapses to
+   nothing in the corner and the ring would otherwise show as a bright dot. */
+.wt-scrim--flat {
+  box-shadow: 0 0 0 9999px var(--wt-dim);
+  border-radius: 0;
+}
+
+.wt-scrim--pulse {
+  animation: wtPulse 2s var(--ease-out) infinite;
+}
+
+@keyframes wtPulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 2px var(--wt-ring),
+      0 0 0 0 var(--color-primary-glow),
+      0 0 0 9999px var(--wt-dim);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px var(--wt-ring),
+      0 0 0 7px var(--color-primary-glow),
+      0 0 0 9999px var(--wt-dim);
+  }
+}
+
+/* ==============================
+   POPOVER
+   ============================== */
+
+.wt-pop {
+  position: fixed;
+  z-index: 9002;
+  width: 340px;
+  max-width: calc(100vw - 24px);
+  padding: 18px 20px 16px;
+  background: var(--color-card-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  color: var(--color-text);
+  opacity: 0;
+  /* Invisible is not the same as gone: without this, a faded-out card would keep
+     eating clicks in the middle of the page after the tour ends. */
+  pointer-events: none;
+  transform: translateY(6px) scale(0.985);
+  transition:
+    opacity 220ms var(--ease-out),
+    transform 260ms var(--ease-spring),
+    top 320ms var(--ease-out),
+    left 320ms var(--ease-out);
+}
+
+.wt-pop--shown {
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+}
+
+/* Clicking the dimmed area is almost always "I meant to click that thing" rather
+   than "close this", so the card nudges instead of the tour exiting. */
+.wt-pop--nudge {
+  animation: wtNudge 320ms var(--ease-out);
+}
+
+@keyframes wtNudge {
+  0%, 100% { transform: none; }
+  25%      { transform: translateX(-5px); }
+  75%      { transform: translateX(5px); }
+}
+
+.wt-pop-arrow {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: var(--color-card-raised);
+  border: 1px solid var(--color-border);
+  transform: rotate(45deg);
+}
+
+.wt-pop--bottom .wt-pop-arrow { top: -7px;    border-right: none;  border-bottom: none; }
+.wt-pop--top    .wt-pop-arrow { bottom: -7px; border-left: none;   border-top: none; }
+.wt-pop--right  .wt-pop-arrow { left: -7px;   border-right: none;  border-top: none; }
+.wt-pop--left   .wt-pop-arrow { right: -7px;  border-left: none;   border-bottom: none; }
+.wt-pop--center .wt-pop-arrow,
+.wt-pop--sheet  .wt-pop-arrow { display: none; }
+
+.wt-pop--center {
+  width: 400px;
+  text-align: left;
+}
+
+.wt-pop-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.wt-pop-step {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.wt-pop-close {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background-color var(--transition), color var(--transition);
+}
+
+.wt-pop-close:hover {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.wt-pop-close svg {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+
+.wt-pop-title {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.35;
+  margin-bottom: 6px;
+  color: var(--color-text);
+}
+
+.wt-pop-body {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.wt-pop-body b,
+.wt-pop-body strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.wt-pop-body code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+}
+
+/* A step that wants the user to do something, not just read about it. */
+.wt-pop-try {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 9px 11px;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-subtle);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.wt-pop-try svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.wt-pop-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border);
+}
+
+.wt-dots {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.wt-dot {
+  width: 6px;
+  height: 6px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--color-border-hover);
+  cursor: pointer;
+  transition: background-color var(--transition), width var(--transition);
+}
+
+.wt-dot:hover { background: var(--color-text-muted); }
+
+.wt-dot--done { background: var(--color-primary-light); }
+
+.wt-dot--now {
+  width: 18px;
+  background: var(--color-primary);
+}
+
+.wt-pop-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.wt-btn {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--transition), border-color var(--transition),
+              color var(--transition), transform var(--transition);
+}
+
+.wt-btn:active { transform: translateY(1px); }
+
+.wt-btn--ghost {
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+.wt-btn--ghost:hover {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.wt-btn--primary {
+  background: var(--color-primary);
+  color: #fff;
+  box-shadow: var(--shadow-primary);
+}
+
+.wt-btn--primary:hover { background: var(--color-primary-dark); }
+
+/* The skip link is deliberately quiet — present, never competing with Next. */
+.wt-skip {
+  border: none;
+  background: none;
+  padding: 0 6px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.wt-skip:hover { color: var(--color-text-secondary); }
+
+/* Applied to the step's target only while it is being scrolled to, so it stops
+   short of the edge and the spotlight ring is never clipped by the viewport. */
+.wt-target {
+  scroll-margin: 20px;
+}
+
+/* ==============================
+   TOUR BUTTON (header)
+   ============================== */
+
+/* Shape is inherited from .theme-toggle; this only adds the first-visit hint. */
+.tour-btn { position: relative; }
+
+.tour-btn::after {
+  content: '';
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-card);
+  opacity: 0;
+  transform: scale(0.4);
+  transition: opacity var(--transition), transform 260ms var(--ease-spring);
+}
+
+/* Only for someone who has never run the tour — it stops nagging after that. */
+.tour-btn--hint::after {
+  opacity: 1;
+  transform: none;
+  animation: wtDot 2.4s var(--ease-out) infinite;
+}
+
+@keyframes wtDot {
+  0%, 100% { box-shadow: 0 0 0 2px var(--color-card), 0 0 0 0 var(--color-primary-glow); }
+  50%      { box-shadow: 0 0 0 2px var(--color-card), 0 0 0 6px transparent; }
+}
+
+/* ==============================
+   SMALL SCREENS
+   ============================== */
+
+/* Below this width there is no room to float a card beside anything, so the
+   instructions dock to the bottom and the spotlight does the pointing. */
+@media (max-width: 640px) {
+  .wt-pop--sheet {
+    left: 12px !important;
+    right: 12px;
+    top: auto !important;
+    bottom: 12px;
+    width: auto;
+    max-width: none;
+  }
+
+  /* Ordered after --sheet on purpose: both set `top` with !important, so the
+     later rule is what wins when a low target forces the card to the top. */
+  .wt-pop--sheet-top {
+    top: 12px !important;
+    bottom: auto;
+  }
+
+  .wt-pop--center {
+    width: auto;
+  }
+
+  .wt-pop-foot {
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+
+  .wt-pop-actions {
+    margin-left: auto;
+  }
+}
+
+/* ==============================
+   REDUCED MOTION
+   ============================== */
+
+/* The global reduced-motion rule already kills durations; this also drops the
+   two idle loops, which are attention-grabbing rather than informative. */
+@media (prefers-reduced-motion: reduce) {
+  .wt-scrim--pulse,
+  .tour-btn--hint::after {
+    animation: none;
+  }
+}
+
+/* ==============================
+   DARK MODE
+   ============================== */
+
+body.dark-mode {
+  --wt-dim: rgba(2, 5, 12, 0.72);
+}
+
+body.dark-mode .wt-pop,
+body.dark-mode .wt-pop-arrow {
+  background: var(--color-card-raised);
+}

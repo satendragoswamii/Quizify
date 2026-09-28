@@ -1,0 +1,49 @@
+{% extends "admin/base.html" %}
+{% block title %}Audit Log{% endblock %}
+
+{% block content %}
+<div class="toolbar">
+  <form method="get">
+    <select name="action">
+      <option value="">All actions</option>
+      {% for a in actions %}
+        <option value="{{ a }}" {% if action == a %}selected{% endif %}>{{ a }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn small">Filter</button>
+    {% if action %}<a class="btn small" href="{{ url_for('admin.audit') }}">Clear</a>{% endif %}
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h2>Administrative activity</h2>
+    <p>Every sign-in, setting change, and user edit, newest first.</p>
+  </div>
+  <div class="card-body tight">
+    {% if entries %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>When</th><th>Actor</th><th>Action</th><th>Target</th><th>Detail</th><th>IP</th></tr>
+        </thead>
+        <tbody>
+          {% for e in entries %}
+          <tr>
+            <td class="muted">{{ e.created_at }}</td>
+            <td>{{ e.actor_email or 'system' }}</td>
+            <td><span class="badge {% if 'failed' in e.action %}err{% elif 'delete' in e.action %}warn{% else %}mute{% endif %}">{{ e.action }}</span></td>
+            <td class="mono">{{ e.target or '—' }}</td>
+            <td class="muted mono">{{ e.detail[:120] or '—' }}</td>
+            <td class="muted mono">{{ e.ip or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="empty">Nothing logged yet.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

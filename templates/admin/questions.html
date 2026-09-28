@@ -1,0 +1,184 @@
+{% extends "admin/base.html" %}
+{% block title %}Question Bank{% endblock %}
+
+{% macro keep_filters() -%}
+  {% if subject %}<input type="hidden" name="subject" value="{{ subject }}">{% endif %}
+  {% if topic %}<input type="hidden" name="topic" value="{{ topic }}">{% endif %}
+  {% if term %}<input type="hidden" name="q" value="{{ term }}">{% endif %}
+  {% if repeats_only %}<input type="hidden" name="repeats" value="1">{% endif %}
+  {# Carried through so filtering, exporting and clearing stay in whichever scope the
+     page is showing, instead of silently dropping back to "mine". #}
+  {% if showing_everyone %}<input type="hidden" name="scope" value="all">{% endif %}
+{%- endmacro %}
+
+{% block content %}
+<div class="scope-note">
+  {% if showing_everyone %}
+    Showing <strong>every account's</strong> questions, including the file names and
+    subjects they came from.
+    <a href="{{ url_for('admin.questions') }}">Show only mine</a>
+  {% else %}
+    Showing <strong>your own</strong> banked questions only.
+    {% if can_see_everyone %}
+      <a href="{{ url_for('admin.questions', scope='all') }}">View every account</a>
+    {% endif %}
+  {% endif %}
+</div>
+
+{% if not bank_enabled %}
+<div class="card">
+  <div class="card-body">
+    <strong>The question bank is switched off.</strong> Nothing new is being recorded &mdash;
+    turn <code>QUIZ_QUESTION_BANK</code> back on in Settings to resume. Anything already
+    stored is still listed below and still exportable.
+  </div>
+</div>
+{% endif %}
+
+<div class="toolbar">
+  <form method="get">
+    {% if showing_everyone %}<input type="hidden" name="scope" value="all">{% endif %}
+    <select name="subject" onchange="this.form.submit()">
+      <option value="">All subjects</option>
+      {% for s in subjects %}
+        <option value="{{ s.name }}" {% if subject == s.name %}selected{% endif %}>
+          {{ s.name }} ({{ s.count }})
+        </option>
+      {% endfor %}
+    </select>
+    <select name="topic" onchange="this.form.submit()">
+      <option value="">All topics</option>
+      {% for t in topics %}
+        <option value="{{ t.name }}" {% if topic == t.name %}selected{% endif %}>
+          {{ t.name }} ({{ t.count }})
+        </option>
+      {% endfor %}
+    </select>
+    <input type="search" name="q" value="{{ term }}" placeholder="Search question text">
+    <label class="inline-check">
+      <input type="checkbox" name="repeats" value="1" {% if repeats_only %}checked{% endif %}
+             onchange="this.form.submit()">
+      Reused only
+    </label>
+    <button type="submit" class="btn small">Filter</button>
+    {% if subject or topic or term or repeats_only %}
+      <a class="btn small" href="{{ url_for('admin.questions', scope='all' if showing_everyone else None) }}">Clear</a>
+    {% endif %}
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h2>
+      {{ total }} question{{ '' if total == 1 else 's' }}
+      {%- if subject or topic %} in {{ subject }}{% if subject and topic %} / {% endif %}{{ topic }}{% endif %}
+    </h2>
+    <p>
+      Every question that has been downloaded, newest use first.
+      {{ stats.total }} stored in total, {{ stats.repeats }} of them used more than once
+      across {{ stats.subjects }} subject{{ '' if stats.subjects == 1 else 's' }}.
+    </p>
+  </div>
+
+  {% if total %}
+  <div class="card-body">
+    <form method="get" action="{{ url_for('admin.questions_export') }}" class="inline-form">
+      {{ keep_filters() }}
+      <label for="format">Download this set as</label>
+      <select name="format" id="format">
+        <option value="excel">Excel (.xlsx)</option>
+        <option value="csv">CSV (.csv)</option>
+        <option value="json">JSON (.json)</option>
+      </select>
+      <button type="submit" class="btn">Download {{ total }} question{{ '' if total == 1 else 's' }}</button>
+    </form>
+  </div>
+  {% endif %}
+
+  <div class="card-body tight">
+    {% if questions %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Question</th><th>Type</th><th>Answer</th>
+            <th>Subject</th><th>Topic</th><th>Used</th><th>Last used</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for q in questions %}
+          <tr>
+            <td>{{ q.question[:130] }}{% if q.question|length > 130 %}&hellip;{% endif %}</td>
+            <td class="muted">{{ q.qtype or '—' }}</td>
+            <td class="mono">{{ q.answer or '—' }}</td>
+            <td class="muted">{{ q.subject or '—' }}</td>
+            <td class="muted">{{ q.topic or '—' }}</td>
+            <td>
+              {% if q.times_used > 1 %}
+                <span class="badge warn">{{ q.times_used }}&times;</span>
+              {% else %}
+                <span class="badge mute">1&times;</span>
+              {% endif %}
+            </td>
+            <td class="muted mono">{{ q.last_used_at[:10] }}</td>
+            <td>
+              <form method="post" action="{{ url_for('admin.questions_delete', question_id=q.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                {# Without the scope an admin deleting from the all-accounts view would
+                   only drop their own history of the question, and appear to do nothing. #}
+                {% if showing_everyone %}<input type="hidden" name="scope" value="all">{% endif %}
+                <button type="submit" class="btn small danger">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="empty">
+        {% if subject or topic or term or repeats_only %}
+          No questions match those filters.
+        {% else %}
+          Nothing banked yet. Questions are recorded when a conversion is downloaded.
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+
+  {% if total > per_page %}
+  <div class="card-body">
+    <div class="pager">
+      {% if page > 1 %}
+        <a class="btn small" href="{{ url_for('admin.questions', page=page-1, subject=subject, topic=topic, q=term, repeats='1' if repeats_only else None, scope='all' if showing_everyone else None) }}">Previous</a>
+      {% endif %}
+      <span class="muted">Page {{ page }} of {{ (total + per_page - 1) // per_page }}</span>
+      {% if page * per_page < total %}
+        <a class="btn small" href="{{ url_for('admin.questions', page=page+1, subject=subject, topic=topic, q=term, repeats='1' if repeats_only else None, scope='all' if showing_everyone else None) }}">Next</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% if has_role('admin') and total %}
+<div class="card">
+  <div class="card-head">
+    <h2>Clear the bank</h2>
+    <p>Removes the {{ total }} question{{ '' if total == 1 else 's' }} currently listed.
+       Conversions keep working; repeats simply stop being flagged.</p>
+  </div>
+  <div class="card-body">
+    <form method="post" action="{{ url_for('admin.questions_clear') }}"
+          onsubmit="return confirm('Delete {{ total }} banked question(s)?');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {{ keep_filters() }}
+      <button type="submit" class="btn danger">
+        Delete {{ total }} question{{ '' if total == 1 else 's' }}
+        {%- if subject or topic %} in this set{% endif %}
+      </button>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
